@@ -20,5 +20,12 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	boilerpipe.NewTextDocument(resp.Body)
+	doc, err := boilerpipe.NewTextDocument(resp.Body)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Title:", doc.Title)
+	fmt.Print("Content:", doc.Content())
 }

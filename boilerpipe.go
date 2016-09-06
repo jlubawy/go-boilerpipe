@@ -1,7 +1,7 @@
 package boilerpipe
 
 import (
-	"fmt"
+	"bytes"
 	"io"
 
 	"golang.org/x/net/html"
@@ -13,6 +13,16 @@ type TextDocument struct {
 }
 
 type TextBlock struct {
+	Text string
+
+	numWords               int
+	numLinkedWords         int
+	numWordsInWrappedLines int
+	numWrappedLines        int
+	offsetBlocks           int
+	tagLevel               int
+
+	isContent bool
 }
 
 func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
@@ -25,7 +35,7 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 		switch tt {
 		case html.ErrorToken:
 			if z.Err() == io.EOF {
-				return
+				goto DONE
 			} else {
 				err = z.Err()
 				return
@@ -45,11 +55,39 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 		}
 	}
 
+DONE:
 	doc = &TextDocument{
 		Title: h.title,
 	}
 
-	fmt.Print(h.textBuffer.String())
-
 	return
+}
+
+func (doc *TextDocument) Content() string {
+	return doc.Text(true, false)
+}
+
+func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
+	buf := &bytes.Buffer{}
+
+	for _, tb := range doc.TextBlocks {
+		if tb.isContent {
+			if includeContent == false {
+				continue
+			}
+		} else {
+			if includeNonContent == false {
+				continue
+			}
+		}
+
+		if _, err := buf.WriteString(tb.Text); err != nil {
+			panic(err)
+		}
+		if _, err := buf.WriteRune('\n'); err != nil {
+			panic(err)
+		}
+	}
+
+	return buf.String()
 }

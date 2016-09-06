@@ -2,6 +2,8 @@ package boilerpipe
 
 import (
 	"bytes"
+	_ "log"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -29,7 +31,6 @@ type ContentHandler struct {
 
 	lastStartTag string
 	lastEndTag   string
-	// lastEvent Event
 
 	offsetBlocks int
 	//private BitSet currentContainedTextElements = new BitSet();
@@ -70,7 +71,7 @@ func (h *ContentHandler) startElement(z *html.Tokenizer) {
 		h.flush = true
 	}
 
-	//lastEvent = Event.START_TAG
+	//log.Println("START_TAG")
 	h.lastStartTag = a.String()
 
 }
@@ -92,89 +93,79 @@ func (h *ContentHandler) endElement(z *html.Tokenizer) {
 	}
 
 	if h.flush {
-		// TODO: h.flushBlock()
+		h.flushBlock()
 	}
 
-	//lastEvent = Event.END_TAG
+	//log.Println("END_TAG")
 	h.lastEndTag = a.String()
 
 	// TODO: labelStacks.removeLast()
+}
+
+type spaceRemover struct {
+	wasFirstWhitespace bool
+	wasLastWhitespace  bool
+}
+
+func (sr *spaceRemover) getSpaceRemovalFunc() func(rune) rune {
+	i := 0
+	return func(r rune) rune {
+		if unicode.IsSpace(r) {
+			if i == 0 {
+				sr.wasFirstWhitespace = true
+			}
+			i++
+			if sr.wasLastWhitespace {
+				return -1
+			} else {
+				sr.wasLastWhitespace = true
+				return ' '
+			}
+		} else {
+			i++
+			sr.wasLastWhitespace = false
+		}
+		return r
+	}
 }
 
 func (h *ContentHandler) textToken(z *html.Tokenizer) {
 	h.textElementIndex++
 
 	if h.flush {
-		// TODO: h.flushBlock();
+		h.flushBlock()
 		h.flush = false
 	}
 
 	if h.depthIgnoreable != 0 {
+		//log.Println("IGNOREABLE")
 		return
 	}
 
-	ch := z.Text()
-	// TODO: start := 0
-	start := 0
-	length := len(ch)
+	sr := &spaceRemover{}
 
-	var (
-		c               rune
-		startWhitespace bool
-		endWhitespace   bool
-	)
-
-	if length == 0 {
+	t := string(z.Text())
+	ch := strings.Map(sr.getSpaceRemovalFunc(), t)
+	if len(ch) == 0 {
 		return
 	}
+	ch = strings.TrimSpace(ch)
 
-	end := start + length
-
-	for i := start; i < end; i++ {
-		if unicode.IsSpace(rune(ch[i])) {
-			ch[i] = ' '
-		}
-	}
-
-	for start < end {
-		c = rune(ch[start])
-
-		if c == ' ' {
-			startWhitespace = true
-			start++
-			length--
-		} else {
-			break
-		}
-	}
-
-	for length > 0 {
-		c = rune(ch[start+length-1])
-		if c == ' ' {
-			endWhitespace = true
-			length--
-		} else {
-			break
-		}
-	}
-
-	if length == 0 {
-		if startWhitespace || endWhitespace {
+	if len(ch) == 0 {
+		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
 			if h.sbLastWasWhitespace == false {
 				h.textBuffer.WriteRune(' ')
 				h.tokenBuffer.WriteRune(' ')
 			}
-
 			h.sbLastWasWhitespace = true
 		} else {
 			h.sbLastWasWhitespace = false
 		}
-
-		//lastEvent = Event.WHITESPACE;
+		//log.Println("WHITESPACE")
 		return
 	}
 
-	if startWhitespace {
+	if sr.wasFirstWhitespace {
 		if h.sbLastWasWhitespace == false {
 			h.textBuffer.WriteRune(' ')
 			h.tokenBuffer.WriteRune(' ')
@@ -185,22 +176,31 @@ func (h *ContentHandler) textToken(z *html.Tokenizer) {
 		h.depthBlockTag = h.depthTag
 	}
 
-	h.textBuffer.Write(ch[start : start+length])
-	h.tokenBuffer.Write(ch[start : start+length])
-
-	if endWhitespace {
+	h.textBuffer.WriteString(ch)
+	h.tokenBuffer.WriteString(ch)
+	if sr.wasLastWhitespace {
 		h.textBuffer.WriteRune(' ')
 		h.tokenBuffer.WriteRune(' ')
 	}
 
-	h.sbLastWasWhitespace = endWhitespace
-	//lastEvent = Event.CHARACTERS;
+	h.sbLastWasWhitespace = sr.wasLastWhitespace
+	//log.Println("CHARACTERS")
 
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
 
+var (
+	reWordBoundary       = regexp.MustCompile("\\b")
+	reNotWordBoundary    = regexp.MustCompile("[\u2063]*([\\\"'\\.,\\!\\@\\-\\:\\;\\$\\?\\(\\)/])[\u2063]*")
+	reValidWordCharacter = regexp.MustCompile("[\\p{L}\\p{Nd}\\p{Nl}\\p{No}]")
+)
+
+func tokenize(s string) []string {
+	return []string{} // TODO
+}
+
 func isWord(tok string) bool {
-	return true
+	return reValidWordCharacter.MatchString(tok)
 }
 
 func (h *ContentHandler) flushBlock() {
@@ -282,29 +282,30 @@ func (h *ContentHandler) flushBlock() {
 		numWordsInWrappedLines = numWords - numWordsCurrentLine
 	}
 
-	tb := &TextBlock{
-	// TODO: init
-	}
-	//TextBlock tb =
-	//    new TextBlock(textBuffer.toString().trim(), currentContainedTextElements, numWords,
-	//        numLinkedWords, numWordsInWrappedLines, numWrappedLines, offsetBlocks);
+	h.textBlocks = append(h.textBlocks, &TextBlock{
+		Text: strings.TrimSpace(h.textBuffer.String()),
+		// TODO: currentContainedTextElements,
+		numWords:               numWords,
+		numLinkedWords:         numLinkedWords,
+		numWordsInWrappedLines: numWordsInWrappedLines,
+		numWrappedLines:        numWrappedLines,
+		offsetBlocks:           h.offsetBlocks,
+		tagLevel:               h.depthBlockTag,
+	})
 
 	// TODO: currentContainedTextElements = new BitSet();
-
 	h.offsetBlocks++
 
 	h.textBuffer.Reset()
 	h.tokenBuffer.Reset()
 
-	//tb.setTagLevel(h.depthBlockTag);
-	h.textBlocks = append(h.textBlocks, tb)
 	h.depthBlockTag = -1
 }
 
 func (h *ContentHandler) addWhitespaceIfNecessary() {
 	if h.sbLastWasWhitespace == false {
-		h.tokenBuffer.WriteString(" ")
-		h.textBuffer.WriteString(" ")
+		h.tokenBuffer.WriteRune(' ')
+		h.textBuffer.WriteRune(' ')
 
 		h.sbLastWasWhitespace = true
 	}

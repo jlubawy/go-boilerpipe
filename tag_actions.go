@@ -40,7 +40,7 @@ func (ta TagActionAnchor) Start(h *ContentHandler, t html.Token) bool {
 	if h.depthIgnoreable == 0 {
 		h.addWhitespaceIfNecessary()
 		h.tokenBuffer.WriteString(atom.A.String())
-		h.tokenBuffer.WriteString(" ")
+		h.tokenBuffer.WriteRune(' ')
 		h.sbLastWasWhitespace = true
 	}
 
@@ -53,7 +53,7 @@ func (TagActionAnchor) End(h *ContentHandler, t html.Token) bool {
 		if h.depthIgnoreable == 0 {
 			h.addWhitespaceIfNecessary()
 			h.tokenBuffer.WriteString(atom.A.String())
-			h.tokenBuffer.WriteString(" ")
+			h.tokenBuffer.WriteRune(' ')
 			h.sbLastWasWhitespace = true
 		}
 	}
@@ -66,12 +66,12 @@ func (TagActionAnchor) ChangesTagLevel() bool { return true }
 type TagActionBody struct{}
 
 func (TagActionBody) Start(h *ContentHandler, t html.Token) bool {
-	// TODO: h.flushBlock()
+	h.flushBlock()
 	h.depthBody++
 	return false
 }
 func (TagActionBody) End(h *ContentHandler, t html.Token) bool {
-	// TODO: h.flushBlock()
+	h.flushBlock()
 	h.depthBody--
 	return false
 }
