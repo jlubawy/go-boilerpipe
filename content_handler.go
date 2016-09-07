@@ -2,7 +2,6 @@ package boilerpipe
 
 import (
 	"bytes"
-	_ "log"
 	"regexp"
 	"strings"
 	"unicode"
@@ -10,6 +9,9 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
+
+const ANCHOR_TEXT_START = "$\ue00a<"
+const ANCHOR_TEXT_END = ">\ue00a$"
 
 type ContentHandler struct {
 	title string
@@ -53,7 +55,7 @@ func NewContentHandler() *ContentHandler {
 	}
 }
 
-func (h *ContentHandler) startElement(z *html.Tokenizer) {
+func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 	// TODO: labelStacks.add(null);
 
 	tn, _ := z.TagName()
@@ -65,25 +67,22 @@ func (h *ContentHandler) startElement(z *html.Tokenizer) {
 			h.depthTag++
 		}
 		h.flush = ta.Start(h, z.Token()) || h.flush
-
 	} else {
 		h.depthTag++
 		h.flush = true
 	}
 
-	//log.Println("START_TAG")
 	h.lastStartTag = a.String()
 
 }
 
-func (h *ContentHandler) endElement(z *html.Tokenizer) {
+func (h *ContentHandler) EndElement(z *html.Tokenizer) {
 	tn, _ := z.TagName()
 	a := atom.Lookup(tn)
 
 	ta, ok := TagActionMap[a]
 	if ok {
 		h.flush = ta.End(h, z.Token()) || h.flush
-
 	} else {
 		h.flush = true
 	}
@@ -93,10 +92,9 @@ func (h *ContentHandler) endElement(z *html.Tokenizer) {
 	}
 
 	if h.flush {
-		h.flushBlock()
+		h.FlushBlock()
 	}
 
-	//log.Println("END_TAG")
 	h.lastEndTag = a.String()
 
 	// TODO: labelStacks.removeLast()
@@ -129,28 +127,25 @@ func (sr *spaceRemover) getSpaceRemovalFunc() func(rune) rune {
 	}
 }
 
-func (h *ContentHandler) textToken(z *html.Tokenizer) {
+func (h *ContentHandler) TextToken(z *html.Tokenizer) {
 	h.textElementIndex++
 
 	if h.flush {
-		h.flushBlock()
+		h.FlushBlock()
 		h.flush = false
 	}
 
 	if h.depthIgnoreable != 0 {
-		//log.Println("IGNOREABLE")
+		return
+	}
+
+	t := string(z.Text())
+	if len(t) == 0 {
 		return
 	}
 
 	sr := &spaceRemover{}
-
-	t := string(z.Text())
-	ch := strings.Map(sr.getSpaceRemovalFunc(), t)
-	if len(ch) == 0 {
-		return
-	}
-	ch = strings.TrimSpace(ch)
-
+	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), t))
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
 			if h.sbLastWasWhitespace == false {
@@ -161,7 +156,7 @@ func (h *ContentHandler) textToken(z *html.Tokenizer) {
 		} else {
 			h.sbLastWasWhitespace = false
 		}
-		//log.Println("WHITESPACE")
+
 		return
 	}
 
@@ -184,7 +179,6 @@ func (h *ContentHandler) textToken(z *html.Tokenizer) {
 	}
 
 	h.sbLastWasWhitespace = sr.wasLastWhitespace
-	//log.Println("CHARACTERS")
 
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
@@ -203,10 +197,13 @@ func isWord(tok string) bool {
 	return reValidWordCharacter.MatchString(tok)
 }
 
-func (h *ContentHandler) flushBlock() {
+func (h *ContentHandler) FlushBlock() {
 	if h.depthBody == 0 {
 		if h.lastStartTag == atom.Title.String() {
-			h.title = strings.TrimSpace(h.tokenBuffer.String())
+			title := strings.TrimSpace(h.tokenBuffer.String())
+			if len(title) > 0 {
+				h.title = title
+			}
 		}
 
 		h.textBuffer.Reset()
@@ -227,8 +224,7 @@ func (h *ContentHandler) flushBlock() {
 		}
 	}
 
-	tokens := make([]string, 0)
-	//    final String[] tokens = UnicodeTokenizer.tokenize(tokenBuffer);
+	tokens := strings.Split(h.tokenBuffer.String(), " ")
 
 	const maxLineLength = 80
 
@@ -242,9 +238,9 @@ func (h *ContentHandler) flushBlock() {
 	currentLineLength := -1 // don't count the first space
 
 	for _, tok := range tokens {
-		if tok == "<a>" {
+		if tok == ANCHOR_TEXT_START {
 			h.inAnchorText = true
-		} else if tok == "</a>" {
+		} else if tok == ANCHOR_TEXT_END {
 			h.inAnchorText = false
 		} else if isWord(tok) {
 			numTokens++
@@ -306,7 +302,6 @@ func (h *ContentHandler) addWhitespaceIfNecessary() {
 	if h.sbLastWasWhitespace == false {
 		h.tokenBuffer.WriteRune(' ')
 		h.textBuffer.WriteRune(' ')
-
 		h.sbLastWasWhitespace = true
 	}
 }

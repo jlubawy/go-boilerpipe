@@ -32,14 +32,13 @@ type TagActionAnchor struct{}
 func (ta TagActionAnchor) Start(h *ContentHandler, t html.Token) bool {
 	if h.depthAnchor > 0 {
 		panic(errors.New("input contains nested <a> elements"))
-		ta.End(h, t)
 	}
 
 	h.depthAnchor++
 
 	if h.depthIgnoreable == 0 {
 		h.addWhitespaceIfNecessary()
-		h.tokenBuffer.WriteString(atom.A.String())
+		h.tokenBuffer.WriteString(ANCHOR_TEXT_START)
 		h.tokenBuffer.WriteRune(' ')
 		h.sbLastWasWhitespace = true
 	}
@@ -52,7 +51,7 @@ func (TagActionAnchor) End(h *ContentHandler, t html.Token) bool {
 	if h.depthAnchor == 0 {
 		if h.depthIgnoreable == 0 {
 			h.addWhitespaceIfNecessary()
-			h.tokenBuffer.WriteString(atom.A.String())
+			h.tokenBuffer.WriteString(ANCHOR_TEXT_END)
 			h.tokenBuffer.WriteRune(' ')
 			h.sbLastWasWhitespace = true
 		}
@@ -66,12 +65,12 @@ func (TagActionAnchor) ChangesTagLevel() bool { return true }
 type TagActionBody struct{}
 
 func (TagActionBody) Start(h *ContentHandler, t html.Token) bool {
-	h.flushBlock()
+	h.FlushBlock()
 	h.depthBody++
 	return false
 }
 func (TagActionBody) End(h *ContentHandler, t html.Token) bool {
-	h.flushBlock()
+	h.FlushBlock()
 	h.depthBody--
 	return false
 }
@@ -95,7 +94,8 @@ func (TagActionInlineWhitespace) ChangesTagLevel() bool { return false }
 type TagActionInlineNoWhitespace struct{}
 
 func (TagActionInlineNoWhitespace) Start(h *ContentHandler, t html.Token) bool { return false }
-func (TagActionInlineNoWhitespace) End(h *ContentHandler, t html.Token) bool   { return false }
+
+func (TagActionInlineNoWhitespace) End(h *ContentHandler, t html.Token) bool { return false }
 
 func (TagActionInlineNoWhitespace) ChangesTagLevel() bool { return false }
 
@@ -131,7 +131,7 @@ var TagActionMap = map[atom.Atom]TagAction{
 	atom.Var:    TagActionInlineNoWhitespace{},
 	atom.Font:   TagActionInlineNoWhitespace{}, // can also use TA_FONT
 
-	// New in 1.3
+	// TODO: New in 1.3
 	//setTagAction("LI", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.LI)));
 	//setTagAction("H1", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.H1,
 	//    DefaultLabels.HEADING)));

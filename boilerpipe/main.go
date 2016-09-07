@@ -27,5 +27,5 @@ func main() {
 	}
 
 	fmt.Println("Title:", doc.Title)
-	fmt.Print("Content:", doc.Content())
+	fmt.Print("Content:", doc.Text(true, true))
 }

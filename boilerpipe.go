@@ -42,13 +42,13 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 			}
 
 		case html.TextToken:
-			h.textToken(z)
+			h.TextToken(z)
 
 		case html.StartTagToken:
-			h.startElement(z)
+			h.StartElement(z)
 
 		case html.EndTagToken:
-			h.endElement(z)
+			h.EndElement(z)
 
 		case html.SelfClosingTagToken, html.CommentToken, html.DoctypeToken:
 			// do nothing
@@ -56,8 +56,11 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 	}
 
 DONE:
+	h.FlushBlock()
+
 	doc = &TextDocument{
-		Title: h.title,
+		Title:      h.title,
+		TextBlocks: h.textBlocks,
 	}
 
 	return
