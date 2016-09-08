@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/jlubawy/go-boilerpipe"
+	"github.com/jlubawy/go-boilerpipe/extractor"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	isChanged := extractor.Article(doc)
+
+	fmt.Println("isChanged:", isChanged)
 	fmt.Println("Title:", doc.Title)
-	fmt.Print("Content:", doc.Text(true, true))
+	fmt.Println("Content:", doc.Text(true, true))
 }

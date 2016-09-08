@@ -3,56 +3,74 @@ package boilerpipe
 import (
 	"bytes"
 	"io"
-	"log"
+	_ "log"
 
 	"golang.org/x/net/html"
 )
 
 func init() {
-	log.SetFlags(log.Lshortfile)
+	//log.SetFlags(log.Lshortfile)
 }
 
 type TextBlock struct {
 	Text string
 
-	numWords               int
-	numLinkedWords         int
-	numWordsInWrappedLines int
-	numWrappedLines        int
-	offsetBlocks           int
-	tagLevel               int
+	NumWords               int
+	NumLinkedWords         int
+	NumWordsInWrappedLines int
+	NumWrappedLines        int
+	OffsetBlocks           int
+	TagLevel               int
 
-	textDensity float64
-	linkDensity float64
+	TextDensity float64
+	LinkDensity float64
 
-	isContent bool
+	IsContent bool
+
+	labels map[int]bool
 }
 
 func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrappedLines int, numWrappedLines int, offsetBlocks int, tagLevel int) *TextBlock {
 	tb := &TextBlock{
 		Text: text,
 		// TODO: currentContainedTextElements,
-		numWords:               numWords,
-		numLinkedWords:         numLinkedWords,
-		numWordsInWrappedLines: numWordsInWrappedLines,
-		numWrappedLines:        numWrappedLines,
-		offsetBlocks:           offsetBlocks,
-		tagLevel:               tagLevel,
+		NumWords:               numWords,
+		NumLinkedWords:         numLinkedWords,
+		NumWordsInWrappedLines: numWordsInWrappedLines,
+		NumWrappedLines:        numWrappedLines,
+		OffsetBlocks:           offsetBlocks,
+		TagLevel:               tagLevel,
+
+		labels: make(map[int]bool),
 	}
 
-	if tb.numWordsInWrappedLines == 0 {
-		tb.numWordsInWrappedLines = numWords
-		tb.numWrappedLines = 1
+	if numWordsInWrappedLines == 0 {
+		tb.NumWordsInWrappedLines = numWords
+		tb.NumWrappedLines = 1
 	}
 
-	tb.textDensity = float64(numWordsInWrappedLines) / float64(numWrappedLines)
+	tb.TextDensity = float64(numWordsInWrappedLines) / float64(numWrappedLines)
 	if numWords == 0 {
-		tb.linkDensity = 0.0
+		tb.LinkDensity = 0.0
 	} else {
-		tb.linkDensity = float64(numLinkedWords) / float64(numWords)
+		tb.LinkDensity = float64(numLinkedWords) / float64(numWords)
 	}
 
 	return tb
+}
+
+const (
+	LabelIndicatesEndOfText int = iota
+)
+
+func (tb *TextBlock) AddLabel(label int) *TextBlock {
+	tb.labels[label] = true
+	return tb
+}
+
+func (tb *TextBlock) HasLabel(label int) bool {
+	_, hasLabel := tb.labels[label]
+	return hasLabel
 }
 
 type TextDocument struct {
@@ -67,7 +85,7 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 
 	for {
 		tt := z.Next()
-		log.Printf("TokenType: %-14s : %s\n", tt, h)
+		//log.Printf("TokenType: %-14s : %s\n", tt, h)
 
 		switch tt {
 		case html.ErrorToken:
@@ -111,7 +129,7 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 	buf := &bytes.Buffer{}
 
 	for _, tb := range doc.TextBlocks {
-		if tb.isContent {
+		if tb.IsContent {
 			if includeContent == false {
 				continue
 			}
@@ -121,6 +139,9 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 			}
 		}
 
+		if _, err := buf.WriteString("!!!"); err != nil {
+			panic(err)
+		}
 		if _, err := buf.WriteString(tb.Text); err != nil {
 			panic(err)
 		}
@@ -130,4 +151,8 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 	}
 
 	return buf.String()
+}
+
+type Processor interface {
+	Process(*TextDocument) bool
 }
