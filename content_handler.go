@@ -231,9 +231,7 @@ func (h *ContentHandler) FlushBlock() {
 		return
 	}
 
-	length := h.tokenBuffer.Len()
-
-	switch length {
+	switch h.tokenBuffer.Len() {
 	case 0:
 		return
 	case 1:
@@ -298,18 +296,21 @@ func (h *ContentHandler) FlushBlock() {
 		numWordsInWrappedLines = numWords - numWordsCurrentLine
 	}
 
-	h.textBlocks = append(h.textBlocks, NewTextBlock(
-		strings.TrimSpace(h.textBuffer.String()),
-		numWords,
-		numLinkedWords,
-		numWordsInWrappedLines,
-		numWrappedLines,
-		h.offsetBlocks,
-		h.depthBlockTag,
-	))
+	text := strings.TrimSpace(h.textBuffer.String())
 
-	// TODO: currentContainedTextElements = new BitSet();
-	h.offsetBlocks++
+	if len(text) > 0 {
+		h.textBlocks = append(h.textBlocks, NewTextBlock(
+			text,
+			numWords,
+			numLinkedWords,
+			numWordsInWrappedLines,
+			numWrappedLines,
+			h.offsetBlocks,
+			h.depthBlockTag,
+		))
+		// TODO: currentContainedTextElements = new BitSet();
+		h.offsetBlocks++
+	}
 
 	h.textBuffer.Reset()
 	h.tokenBuffer.Reset()
