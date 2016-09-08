@@ -3,24 +3,23 @@ package boilerpipe
 import (
 	"errors"
 
-	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
 type TagAction interface {
-	Start(*ContentHandler, html.Token) bool
-	End(*ContentHandler, html.Token) bool
+	Start(*ContentHandler) bool
+	End(*ContentHandler) bool
 	ChangesTagLevel() bool
 }
 
 type TagActionIgnorable struct{}
 
-func (TagActionIgnorable) Start(h *ContentHandler, t html.Token) bool {
+func (ta TagActionIgnorable) Start(h *ContentHandler) bool {
 	h.depthIgnoreable++
 	return true
 }
 
-func (TagActionIgnorable) End(h *ContentHandler, t html.Token) bool {
+func (TagActionIgnorable) End(h *ContentHandler) bool {
 	h.depthIgnoreable--
 	return true
 }
@@ -29,7 +28,8 @@ func (TagActionIgnorable) ChangesTagLevel() bool { return true }
 
 type TagActionAnchor struct{}
 
-func (ta TagActionAnchor) Start(h *ContentHandler, t html.Token) bool {
+func (ta TagActionAnchor) Start(h *ContentHandler) bool {
+
 	if h.depthAnchor > 0 {
 		panic(errors.New("input contains nested <a> elements"))
 	}
@@ -45,7 +45,7 @@ func (ta TagActionAnchor) Start(h *ContentHandler, t html.Token) bool {
 
 	return false
 }
-func (TagActionAnchor) End(h *ContentHandler, t html.Token) bool {
+func (TagActionAnchor) End(h *ContentHandler) bool {
 	h.depthAnchor--
 
 	if h.depthAnchor == 0 {
@@ -64,12 +64,12 @@ func (TagActionAnchor) ChangesTagLevel() bool { return true }
 
 type TagActionBody struct{}
 
-func (TagActionBody) Start(h *ContentHandler, t html.Token) bool {
+func (ta TagActionBody) Start(h *ContentHandler) bool {
 	h.FlushBlock()
 	h.depthBody++
 	return false
 }
-func (TagActionBody) End(h *ContentHandler, t html.Token) bool {
+func (TagActionBody) End(h *ContentHandler) bool {
 	h.FlushBlock()
 	h.depthBody--
 	return false
@@ -79,12 +79,12 @@ func (TagActionBody) ChangesTagLevel() bool { return true }
 
 type TagActionInlineWhitespace struct{}
 
-func (TagActionInlineWhitespace) Start(h *ContentHandler, t html.Token) bool {
+func (ta TagActionInlineWhitespace) Start(h *ContentHandler) bool {
 	h.addWhitespaceIfNecessary()
 	return false
 }
 
-func (TagActionInlineWhitespace) End(h *ContentHandler, t html.Token) bool {
+func (TagActionInlineWhitespace) End(h *ContentHandler) bool {
 	h.addWhitespaceIfNecessary()
 	return false
 }
@@ -93,22 +93,28 @@ func (TagActionInlineWhitespace) ChangesTagLevel() bool { return false }
 
 type TagActionInlineNoWhitespace struct{}
 
-func (TagActionInlineNoWhitespace) Start(h *ContentHandler, t html.Token) bool { return false }
+func (ta TagActionInlineNoWhitespace) Start(h *ContentHandler) bool {
+	return false
+}
 
-func (TagActionInlineNoWhitespace) End(h *ContentHandler, t html.Token) bool { return false }
+func (TagActionInlineNoWhitespace) End(h *ContentHandler) bool { return false }
 
 func (TagActionInlineNoWhitespace) ChangesTagLevel() bool { return false }
 
+type TagActionIgnoreableVoid struct{}
+
+func (ta TagActionIgnoreableVoid) Start(h *ContentHandler) bool { return false }
+func (TagActionIgnoreableVoid) End(h *ContentHandler) bool      { return false }
+func (TagActionIgnoreableVoid) ChangesTagLevel() bool           { return false }
+
 // From DefaultTagActionMap.java
 var TagActionMap = map[atom.Atom]TagAction{
-	atom.Style:    TagActionIgnorable{},
-	atom.Script:   TagActionIgnorable{},
-	atom.Option:   TagActionIgnorable{},
-	atom.Object:   TagActionIgnorable{},
-	atom.Embed:    TagActionIgnorable{},
 	atom.Applet:   TagActionIgnorable{},
-	atom.Link:     TagActionIgnorable{},
 	atom.Noscript: TagActionIgnorable{},
+	atom.Object:   TagActionIgnorable{},
+	atom.Option:   TagActionIgnorable{},
+	atom.Script:   TagActionIgnorable{},
+	atom.Style:    TagActionIgnorable{},
 
 	atom.A: TagActionAnchor{},
 
@@ -117,19 +123,19 @@ var TagActionMap = map[atom.Atom]TagAction{
 	atom.Abbr: TagActionInlineWhitespace{},
 	// no atom.Acronym
 
-	atom.Strike: TagActionInlineNoWhitespace{},
-	atom.U:      TagActionInlineNoWhitespace{},
 	atom.B:      TagActionInlineNoWhitespace{},
-	atom.I:      TagActionInlineNoWhitespace{},
-	atom.Em:     TagActionInlineNoWhitespace{},
-	atom.Strong: TagActionInlineNoWhitespace{},
-	atom.Span:   TagActionInlineNoWhitespace{},
-	atom.Sup:    TagActionInlineNoWhitespace{},
 	atom.Code:   TagActionInlineNoWhitespace{},
-	atom.Tt:     TagActionInlineNoWhitespace{},
-	atom.Sub:    TagActionInlineNoWhitespace{},
-	atom.Var:    TagActionInlineNoWhitespace{},
+	atom.Em:     TagActionInlineNoWhitespace{},
 	atom.Font:   TagActionInlineNoWhitespace{}, // can also use TA_FONT
+	atom.I:      TagActionInlineNoWhitespace{},
+	atom.Span:   TagActionInlineNoWhitespace{},
+	atom.Strike: TagActionInlineNoWhitespace{},
+	atom.Strong: TagActionInlineNoWhitespace{},
+	atom.Sub:    TagActionInlineNoWhitespace{},
+	atom.Sup:    TagActionInlineNoWhitespace{},
+	atom.Tt:     TagActionInlineNoWhitespace{},
+	atom.U:      TagActionInlineNoWhitespace{},
+	atom.Var:    TagActionInlineNoWhitespace{},
 
 	// TODO: New in 1.3
 	//setTagAction("LI", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.LI)));
@@ -139,4 +145,20 @@ var TagActionMap = map[atom.Atom]TagAction{
 	//    DefaultLabels.HEADING)));
 	//setTagAction("H3", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.H3,
 	//    DefaultLabels.HEADING)));
+
+	atom.Area:     TagActionIgnoreableVoid{},
+	atom.Base:     TagActionIgnoreableVoid{},
+	atom.Br:       TagActionIgnoreableVoid{},
+	atom.Col:      TagActionIgnoreableVoid{},
+	atom.Embed:    TagActionIgnoreableVoid{},
+	atom.Hr:       TagActionIgnoreableVoid{},
+	atom.Img:      TagActionIgnoreableVoid{},
+	atom.Input:    TagActionIgnoreableVoid{},
+	atom.Link:     TagActionIgnoreableVoid{},
+	atom.Menuitem: TagActionIgnoreableVoid{},
+	atom.Meta:     TagActionIgnoreableVoid{},
+	atom.Param:    TagActionIgnoreableVoid{},
+	atom.Source:   TagActionIgnoreableVoid{},
+	atom.Track:    TagActionIgnoreableVoid{},
+	atom.Wbr:      TagActionIgnoreableVoid{},
 }

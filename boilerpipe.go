@@ -3,13 +3,13 @@ package boilerpipe
 import (
 	"bytes"
 	"io"
+	"log"
 
 	"golang.org/x/net/html"
 )
 
-type TextDocument struct {
-	Title      string
-	TextBlocks []*TextBlock
+func init() {
+	log.SetFlags(log.Lshortfile)
 }
 
 type TextBlock struct {
@@ -22,7 +22,42 @@ type TextBlock struct {
 	offsetBlocks           int
 	tagLevel               int
 
+	textDensity float64
+	linkDensity float64
+
 	isContent bool
+}
+
+func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrappedLines int, numWrappedLines int, offsetBlocks int, tagLevel int) *TextBlock {
+	tb := &TextBlock{
+		Text: text,
+		// TODO: currentContainedTextElements,
+		numWords:               numWords,
+		numLinkedWords:         numLinkedWords,
+		numWordsInWrappedLines: numWordsInWrappedLines,
+		numWrappedLines:        numWrappedLines,
+		offsetBlocks:           offsetBlocks,
+		tagLevel:               tagLevel,
+	}
+
+	if tb.numWordsInWrappedLines == 0 {
+		tb.numWordsInWrappedLines = numWords
+		tb.numWrappedLines = 1
+	}
+
+	tb.textDensity = float64(numWordsInWrappedLines) / float64(numWrappedLines)
+	if numWords == 0 {
+		tb.linkDensity = 0.0
+	} else {
+		tb.linkDensity = float64(numLinkedWords) / float64(numWords)
+	}
+
+	return tb
+}
+
+type TextDocument struct {
+	Title      string
+	TextBlocks []*TextBlock
 }
 
 func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
@@ -32,6 +67,8 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 
 	for {
 		tt := z.Next()
+		log.Printf("TokenType: %-14s : %s\n", tt, h)
+
 		switch tt {
 		case html.ErrorToken:
 			if z.Err() == io.EOF {

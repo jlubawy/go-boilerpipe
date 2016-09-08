@@ -2,6 +2,7 @@ package boilerpipe
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strings"
 	"unicode"
@@ -55,6 +56,25 @@ func NewContentHandler() *ContentHandler {
 	}
 }
 
+func (h *ContentHandler) String() string {
+	return fmt.Sprintf("ContentHandler{ len(textBlocks): %d, tokenBuffer.Len(): %d, textBuffer.Len(): %d, depthBody: %d, depthAnchor: %d, depthIgnoreable: %d, depthTag: %d, depthBlockTag: %d, sbLastWasWhitespace: %t, textElementIndex: %d, lastStartTag: %s, lastEndTag: %s, offsetBlocks: %d, flush: %t, inAnchorText: %t }",
+		len(h.textBlocks),
+		h.tokenBuffer.Len(),
+		h.textBuffer.Len(),
+		h.depthBody,
+		h.depthAnchor,
+		h.depthIgnoreable,
+		h.depthTag,
+		h.depthBlockTag,
+		h.sbLastWasWhitespace,
+		h.textElementIndex,
+		h.lastStartTag,
+		h.lastEndTag,
+		h.offsetBlocks,
+		h.flush,
+		h.inAnchorText)
+}
+
 func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 	// TODO: labelStacks.add(null);
 
@@ -66,7 +86,7 @@ func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 		if ta.ChangesTagLevel() {
 			h.depthTag++
 		}
-		h.flush = ta.Start(h, z.Token()) || h.flush
+		h.flush = ta.Start(h) || h.flush
 	} else {
 		h.depthTag++
 		h.flush = true
@@ -82,7 +102,7 @@ func (h *ContentHandler) EndElement(z *html.Tokenizer) {
 
 	ta, ok := TagActionMap[a]
 	if ok {
-		h.flush = ta.End(h, z.Token()) || h.flush
+		h.flush = ta.End(h) || h.flush
 	} else {
 		h.flush = true
 	}
@@ -278,16 +298,15 @@ func (h *ContentHandler) FlushBlock() {
 		numWordsInWrappedLines = numWords - numWordsCurrentLine
 	}
 
-	h.textBlocks = append(h.textBlocks, &TextBlock{
-		Text: strings.TrimSpace(h.textBuffer.String()),
-		// TODO: currentContainedTextElements,
-		numWords:               numWords,
-		numLinkedWords:         numLinkedWords,
-		numWordsInWrappedLines: numWordsInWrappedLines,
-		numWrappedLines:        numWrappedLines,
-		offsetBlocks:           h.offsetBlocks,
-		tagLevel:               h.depthBlockTag,
-	})
+	h.textBlocks = append(h.textBlocks, NewTextBlock(
+		strings.TrimSpace(h.textBuffer.String()),
+		numWords,
+		numLinkedWords,
+		numWordsInWrappedLines,
+		numWrappedLines,
+		h.offsetBlocks,
+		h.depthBlockTag,
+	))
 
 	// TODO: currentContainedTextElements = new BitSet();
 	h.offsetBlocks++
