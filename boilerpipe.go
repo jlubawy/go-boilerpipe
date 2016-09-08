@@ -3,7 +3,7 @@ package boilerpipe
 import (
 	"bytes"
 	"io"
-	_ "log"
+	"math"
 
 	"golang.org/x/net/html"
 )
@@ -15,11 +15,13 @@ func init() {
 type TextBlock struct {
 	Text string
 
+	OffsetBlocksStart int
+	OffsetBlocksEnd   int
+
 	NumWords               int
 	NumLinkedWords         int
 	NumWordsInWrappedLines int
 	NumWrappedLines        int
-	OffsetBlocks           int
 	TagLevel               int
 
 	TextDensity float64
@@ -30,6 +32,9 @@ type TextBlock struct {
 	labels map[int]bool
 }
 
+var TextBlockEmptyStart = NewTextBlock("", 0, 0, 0, 0, math.MinInt32, 0)
+var TextBlockEmptyEnd = NewTextBlock("", 0, 0, 0, 0, math.MaxInt32, 0)
+
 func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrappedLines int, numWrappedLines int, offsetBlocks int, tagLevel int) *TextBlock {
 	tb := &TextBlock{
 		Text: text,
@@ -38,7 +43,8 @@ func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrapp
 		NumLinkedWords:         numLinkedWords,
 		NumWordsInWrappedLines: numWordsInWrappedLines,
 		NumWrappedLines:        numWrappedLines,
-		OffsetBlocks:           offsetBlocks,
+		OffsetBlocksStart:      offsetBlocks,
+		OffsetBlocksEnd:        offsetBlocks,
 		TagLevel:               tagLevel,
 
 		labels: make(map[int]bool),
@@ -49,18 +55,25 @@ func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrapp
 		tb.NumWrappedLines = 1
 	}
 
-	tb.TextDensity = float64(numWordsInWrappedLines) / float64(numWrappedLines)
-	if numWords == 0 {
-		tb.LinkDensity = 0.0
-	} else {
-		tb.LinkDensity = float64(numLinkedWords) / float64(numWords)
-	}
+	initDensities(tb)
 
 	return tb
 }
 
+func initDensities(tb *TextBlock) {
+	tb.TextDensity = float64(tb.NumWordsInWrappedLines) / float64(tb.NumWrappedLines)
+	if tb.NumWords == 0 {
+		tb.LinkDensity = 0.0
+	} else {
+		tb.LinkDensity = float64(tb.NumLinkedWords) / float64(tb.NumWords)
+	}
+}
+
 const (
 	LabelIndicatesEndOfText int = iota
+	LabelHeading
+	LabelMightBeContent
+	LabelVeryLikelyContent
 )
 
 func (tb *TextBlock) AddLabel(label int) *TextBlock {
@@ -71,6 +84,39 @@ func (tb *TextBlock) AddLabel(label int) *TextBlock {
 func (tb *TextBlock) HasLabel(label int) bool {
 	_, hasLabel := tb.labels[label]
 	return hasLabel
+}
+
+func (tb *TextBlock) MergeNext(next *TextBlock) {
+	buf := bytes.NewBufferString(tb.Text)
+	buf.WriteRune('\n')
+	buf.WriteString(next.Text)
+	tb.Text = buf.String()
+
+	tb.NumWords += next.NumWords
+	tb.NumLinkedWords += next.NumLinkedWords
+
+	tb.NumWordsInWrappedLines += next.NumWordsInWrappedLines
+	tb.NumWrappedLines += next.NumWrappedLines
+
+	tb.OffsetBlocksStart = int(math.Min(float64(tb.OffsetBlocksStart), float64(next.OffsetBlocksStart)))
+	tb.OffsetBlocksEnd = int(math.Min(float64(tb.OffsetBlocksEnd), float64(next.OffsetBlocksEnd)))
+
+	initDensities(tb)
+
+	tb.IsContent = tb.IsContent || next.IsContent
+
+	// TODO
+	//if (containedTextElements == null) {
+	//  containedTextElements = (BitSet) next.containedTextElements.clone();
+	//} else {
+	//  containedTextElements.or(next.containedTextElements);
+	//}
+
+	for k, v := range next.labels {
+		tb.labels[k] = v
+	}
+
+	tb.TagLevel = int(math.Min(float64(tb.TagLevel), float64(next.TagLevel)))
 }
 
 type TextDocument struct {
