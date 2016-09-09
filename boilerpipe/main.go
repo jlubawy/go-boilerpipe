@@ -27,11 +27,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	extractor.EnableLogging(true)
-	isChanged := extractor.Article().Process(doc)
+	//extractor.EnableLogging(true)
+	extractor.Article().Process(doc)
 
-	fmt.Println("isChanged:", isChanged)
 	fmt.Println("Title:", doc.Title)
 	fmt.Println("Content:", doc.Content())
-	//fmt.Println("Text:", doc.Text(true, true))
 }

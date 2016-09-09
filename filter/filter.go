@@ -1,7 +1,7 @@
 package filter
 
 import (
-	"log"
+	"math"
 	"regexp"
 	"strings"
 
@@ -524,7 +524,6 @@ func (p expandTitleToContent) Process(doc *boilerpipe.TextDocument) bool {
 		tb := doc.TextBlocks[i]
 
 		if tb.HasLabel(boilerpipe.LabelMightBeContent) {
-			log.Println("Expand:", tb.Text)
 			hasChanged = (tb.IsContent == false) || hasChanged
 			tb.IsContent = true
 		}
@@ -587,6 +586,7 @@ func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.TextDocument) bool {
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
+
 		eot := tb.HasLabel(boilerpipe.LabelIndicatesEndOfText)
 
 		if tb.IsContent {
@@ -690,4 +690,34 @@ func getNumFullTextWords(tb *boilerpipe.TextBlock) int {
 	} else {
 		return 0
 	}
+}
+
+func ListAtEnd() boilerpipe.Processor { return listAtEnd{} }
+
+type listAtEnd struct{}
+
+func (listAtEnd) Name() string { return "ListAtEnd" }
+
+func (p listAtEnd) Process(doc *boilerpipe.TextDocument) bool {
+	hasChanged := false
+	tagLevel := math.MaxInt32
+
+	for i := range doc.TextBlocks {
+		tb := doc.TextBlocks[i]
+
+		if tb.IsContent && tb.HasLabel(boilerpipe.LabelVeryLikelyContent) {
+			tagLevel = tb.TagLevel
+		} else {
+			if tb.TagLevel > tagLevel && tb.HasLabel(boilerpipe.LabelMightBeContent) &&
+				tb.HasLabel(boilerpipe.LabelList) && tb.LinkDensity == 0.0 {
+				tb.IsContent = true
+				hasChanged = true
+			} else {
+				tagLevel = math.MaxInt32
+			}
+		}
+	}
+
+	return hasChanged
+
 }

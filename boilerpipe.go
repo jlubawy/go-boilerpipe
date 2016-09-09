@@ -8,10 +8,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-func init() {
-	//log.SetFlags(log.Lshortfile)
-}
-
 type TextBlock struct {
 	Text string
 
@@ -145,7 +141,6 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 
 	for {
 		tt := z.Next()
-		//log.Printf("TokenType: %-14s : %s\n", tt, h)
 
 		switch tt {
 		case html.ErrorToken:

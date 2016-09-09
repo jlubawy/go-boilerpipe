@@ -119,12 +119,14 @@ func (TagActionIgnoreableVoid) ChangesTagLevel() bool        { return false }
 
 // From DefaultTagActionMap.java
 var TagActionMap = map[atom.Atom]TagAction{
-	atom.Applet:   TagActionIgnorable{},
-	atom.Noscript: TagActionIgnorable{},
-	atom.Object:   TagActionIgnorable{},
-	atom.Option:   TagActionIgnorable{},
-	atom.Script:   TagActionIgnorable{},
-	atom.Style:    TagActionIgnorable{},
+	atom.Applet:     TagActionIgnorable{},
+	atom.Figcaption: TagActionIgnorable{},
+	atom.Figure:     TagActionIgnorable{},
+	atom.Noscript:   TagActionIgnorable{},
+	atom.Object:     TagActionIgnorable{},
+	atom.Option:     TagActionIgnorable{},
+	atom.Script:     TagActionIgnorable{},
+	atom.Style:      TagActionIgnorable{},
 
 	atom.A: TagActionAnchor{},
 
@@ -147,18 +149,10 @@ var TagActionMap = map[atom.Atom]TagAction{
 	atom.U:      TagActionInlineNoWhitespace{},
 	atom.Var:    TagActionInlineNoWhitespace{},
 
-	// TODO: New in 1.3
 	atom.Li: TagActionBlockTagLabel{NewLabelAction(LabelList)},
 	atom.H1: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading1)},
 	atom.H2: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading2)},
 	atom.H3: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading3)},
-	//setTagAction("LI", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.LI)));
-	//setTagAction("H1", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.H1,
-	//    DefaultLabels.HEADING)));
-	//setTagAction("H2", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.H2,
-	//    DefaultLabels.HEADING)));
-	//setTagAction("H3", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.H3,
-	//    DefaultLabels.HEADING)));
 
 	atom.Area:     TagActionIgnoreableVoid{},
 	atom.Base:     TagActionIgnoreableVoid{},

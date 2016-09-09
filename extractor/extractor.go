@@ -57,7 +57,7 @@ var articleExtractor = &Extractor{
 		filter.KeepLargestBlock(),
 		filter.ExpandTitleToContent(),
 		filter.LargeBlockSameTagLevelToContent(),
-		// ListAtEndFilter.INSTANCE.process();
+		filter.ListAtEnd(),
 	},
 }
 
