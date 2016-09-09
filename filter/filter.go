@@ -8,12 +8,11 @@ import (
 	"github.com/jlubawy/go-boilerpipe"
 )
 
+func TerminatingBlocks() boilerpipe.Processor { return terminatingBlocks{} }
+
 type terminatingBlocks struct{}
 
-func TerminatingBlocks(doc *boilerpipe.TextDocument) bool {
-	p := terminatingBlocks{}
-	return p.Process(doc)
-}
+func (terminatingBlocks) Name() string { return "TerminatingBlocks" }
 
 func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
@@ -82,12 +81,11 @@ func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
 //    return c >= '0' && c <= '9';
 //  }
 
+func DocumentTitleMatchClassifier() boilerpipe.Processor { return documentTitleMatchClassifier{} }
+
 type documentTitleMatchClassifier struct{}
 
-func DocumentTitleMatchClassifier(doc *boilerpipe.TextDocument) bool {
-	p := documentTitleMatchClassifier{}
-	return p.Process(doc)
-}
+func (documentTitleMatchClassifier) Name() string { return "DocumentTitleMatchClassifier" }
 
 func (p documentTitleMatchClassifier) Process(doc *boilerpipe.TextDocument) bool {
 	if len(doc.Title) == 0 {
@@ -222,12 +220,11 @@ func getLongestPart(title, pattern string) string {
 	return strings.TrimSpace(longestPart)
 }
 
+func TrailingHeadlineToBoilerplate() boilerpipe.Processor { return trailingHeadlineToBoilerplate{} }
+
 type trailingHeadlineToBoilerplate struct{}
 
-func TrailingHeadlineToBoilerplate(doc *boilerpipe.TextDocument) bool {
-	p := trailingHeadlineToBoilerplate{}
-	return p.Process(doc)
-}
+func (trailingHeadlineToBoilerplate) Name() string { return "TrailingHeadlineToBoilerplate" }
 
 func (p trailingHeadlineToBoilerplate) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
@@ -248,22 +245,21 @@ func (p trailingHeadlineToBoilerplate) Process(doc *boilerpipe.TextDocument) boo
 	return hasChanged
 }
 
+var (
+	BlockProximityFusionMaxDistanceOne                        = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOne", 1, false, false}
+	BlockProximityFusionMaxDistanceOneSameTagLevel            = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOneSameTagLevel", 1, false, true}
+	BlockProximityFusionMaxDistanceOneContentOnly             = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOneContentOnly", 1, true, false}
+	BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel", 1, true, true}
+)
+
 type blockProximityFusionParams struct {
+	name              string
 	maxBlocksDistance int
 	contentOnly       bool
 	sameTagLevelOnly  bool
 }
 
-var (
-	BlockProximityFusionMaxDistanceOne                        = &blockProximityFusionParams{1, false, false}
-	BlockProximityFusionMaxDistanceOneSameTagLevel            = &blockProximityFusionParams{1, false, true}
-	BlockProximityFusionMaxDistanceOneContentOnly             = &blockProximityFusionParams{1, true, false}
-	BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel = &blockProximityFusionParams{1, true, true}
-)
-
-func (p *blockProximityFusionParams) BlockProximityFusion(doc *boilerpipe.TextDocument) bool {
-	return p.Process(doc)
-}
+func (p *blockProximityFusionParams) Name() string { return p.name }
 
 func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
@@ -333,12 +329,11 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 	return hasChanged
 }
 
+func BoilerplateBlock() boilerpipe.Processor { return boilerplateBlock{} }
+
 type boilerplateBlock struct{}
 
-func BoilerplateBlock(doc *boilerpipe.TextDocument) bool {
-	p := boilerplateBlock{}
-	return p.Process(doc)
-}
+func (boilerplateBlock) Name() string { return "BoilerplateBlock" }
 
 func (p boilerplateBlock) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
@@ -356,6 +351,10 @@ func (p boilerplateBlock) Process(doc *boilerpipe.TextDocument) bool {
 	return hasChanged
 }
 
+func KeepLargestBlock() boilerpipe.Processor {
+	return keepLargestBlock{true, ExpandToSameTagLevelMinimumWords}
+}
+
 type keepLargestBlock struct {
 	expandToSameLevelText bool
 	minWords              int
@@ -366,10 +365,7 @@ const (
 	ExpandToSameTagLevelMinimumWords int = 150
 )
 
-func KeepLargestBlock(doc *boilerpipe.TextDocument) bool {
-	p := keepLargestBlock{true, ExpandToSameTagLevelMinimumWords}
-	return p.Process(doc)
-}
+func (keepLargestBlock) Name() string { return "KeepLargestBlock" }
 
 func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
 	if len(doc.TextBlocks) < 2 {
@@ -447,12 +443,11 @@ func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
 	return true
 }
 
+func KeepLargestFulltextBlock() boilerpipe.Processor { return keepLargestFulltextBlock{} }
+
 type keepLargestFulltextBlock struct{}
 
-func KeepLargestFulltextBlock(doc *boilerpipe.TextDocument) bool {
-	p := keepLargestFulltextBlock{}
-	return p.Process(doc)
-}
+func (keepLargestFulltextBlock) Name() string { return "KeepLargestFulltextBlock" }
 
 func (p keepLargestFulltextBlock) Process(doc *boilerpipe.TextDocument) bool {
 	if len(doc.TextBlocks) < 2 {
@@ -494,12 +489,11 @@ func (p keepLargestFulltextBlock) Process(doc *boilerpipe.TextDocument) bool {
 	return true
 }
 
+func ExpandTitleToContent() boilerpipe.Processor { return expandTitleToContent{} }
+
 type expandTitleToContent struct{}
 
-func ExpandTitleToContent(doc *boilerpipe.TextDocument) bool {
-	p := expandTitleToContent{}
-	return p.Process(doc)
-}
+func (expandTitleToContent) Name() string { return "ExpandTitleToContent" }
 
 func (p expandTitleToContent) Process(doc *boilerpipe.TextDocument) bool {
 	j := 0
@@ -539,12 +533,11 @@ func (p expandTitleToContent) Process(doc *boilerpipe.TextDocument) bool {
 	return hasChanged
 }
 
+func LargeBlockSameTagLevelToContent() boilerpipe.Processor { return largeBlockSameTagLevelToContent{} }
+
 type largeBlockSameTagLevelToContent struct{}
 
-func LargeBlockSameTagLevelToContent(doc *boilerpipe.TextDocument) bool {
-	p := largeBlockSameTagLevelToContent{}
-	return p.Process(doc)
-}
+func (largeBlockSameTagLevelToContent) Name() string { return "LargeBlockSameTagLevelToContent" }
 
 func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
@@ -577,14 +570,15 @@ func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.TextDocument) b
 	return hasChanged
 }
 
+func IgnoreBlocksAfterContent() boilerpipe.Processor {
+	return ignoreBlocksAfterContent{DefaultMinNumberOfWords}
+}
+
 type ignoreBlocksAfterContent struct{ minNumWords int }
 
 const DefaultMinNumberOfWords = 60
 
-func IgnoreBlocksAfterContent(doc *boilerpipe.TextDocument) bool {
-	p := ignoreBlocksAfterContent{DefaultMinNumberOfWords}
-	return p.Process(doc)
-}
+func (ignoreBlocksAfterContent) Name() string { return "IgnoreBlocksAfterContent" }
 
 func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
@@ -610,12 +604,11 @@ func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.TextDocument) bool {
 	return hasChanged
 }
 
+func NumWordsRulesClassifier() boilerpipe.Processor { return numWordsRulesClassifier{} }
+
 type numWordsRulesClassifier struct{}
 
-func NumWordsRulesClassifier(doc *boilerpipe.TextDocument) bool {
-	p := numWordsRulesClassifier{}
-	return p.Process(doc)
-}
+func (numWordsRulesClassifier) Name() string { return "NumWordsRulesClassifier" }
 
 func (p numWordsRulesClassifier) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged := false

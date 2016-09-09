@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	isChanged := extractor.Article(doc)
+	isChanged := extractor.Article().Process(doc)
 
 	fmt.Println("isChanged:", isChanged)
 	fmt.Println("Title:", doc.Title)

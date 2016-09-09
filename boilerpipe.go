@@ -198,5 +198,6 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 }
 
 type Processor interface {
+	Name() string
 	Process(*TextDocument) bool
 }
