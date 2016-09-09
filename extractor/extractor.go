@@ -23,7 +23,7 @@ func (article) Process(doc *boilerpipe.TextDocument) bool {
 	hasChanged = filter.BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel.Process(doc) || hasChanged
 	hasChanged = filter.KeepLargestBlock(doc) || hasChanged
 	// ExpandTitleToContentFilter.INSTANCE.process(doc)
-	// LargeBlockSameTagLevelToContentFilter.INSTANCE.process(doc)
+	hasChanged = filter.LargeBlockSameTagLevelToContent(doc) || hasChanged
 	// ListAtEndFilter.INSTANCE.process(doc);
 	return hasChanged
 }

@@ -32,5 +32,5 @@ func main() {
 	fmt.Println("isChanged:", isChanged)
 	fmt.Println("Title:", doc.Title)
 	fmt.Println("Content:", doc.Content())
-	fmt.Println("Text:", doc.Text(true, true))
+	//fmt.Println("Text:", doc.Text(true, true))
 }

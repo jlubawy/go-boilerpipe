@@ -185,9 +185,6 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 			}
 		}
 
-		if _, err := buf.WriteString("!!!"); err != nil {
-			panic(err)
-		}
 		if _, err := buf.WriteString(tb.Text); err != nil {
 			panic(err)
 		}

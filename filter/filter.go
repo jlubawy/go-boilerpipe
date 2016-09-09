@@ -329,6 +329,44 @@ func (p keepLargestFulltextBlock) Process(doc *boilerpipe.TextDocument) bool {
 	return true
 }
 
+type largeBlockSameTagLevelToContent struct{}
+
+func LargeBlockSameTagLevelToContent(doc *boilerpipe.TextDocument) bool {
+	p := largeBlockSameTagLevelToContent{}
+	return p.Process(doc)
+}
+
+func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.TextDocument) bool {
+	hasChanged := false
+	tagLevel := -1
+
+	for i := range doc.TextBlocks {
+		tb := doc.TextBlocks[i]
+
+		if tb.IsContent && tb.HasLabel(boilerpipe.LabelVeryLikelyContent) {
+			tagLevel = tb.TagLevel
+			break
+		}
+	}
+
+	if tagLevel == -1 {
+		return false
+	}
+
+	for i := range doc.TextBlocks {
+		tb := doc.TextBlocks[i]
+
+		if tb.IsContent == false {
+			if tb.NumWords >= 100 && tb.TagLevel == tagLevel {
+				tb.IsContent = true
+				hasChanged = true
+			}
+		}
+	}
+
+	return hasChanged
+}
+
 type ignoreBlocksAfterContent struct{ minNumWords int }
 
 const DefaultMinNumberOfWords = 60
