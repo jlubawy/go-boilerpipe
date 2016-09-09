@@ -22,13 +22,13 @@ func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
 
 		numWords := tb.NumWords
 
-		if numWords < 15 {
+		if numWords < 50 {
 			text := tb.Text
 
 			if len(text) >= 8 {
 				textLC := strings.ToLower(text)
 
-				if strings.HasPrefix(textLC, "comments") ||
+				if strings.HasPrefix(textLC, "comment") ||
 					//|| startsWithNumber(textLC, len, " comments", " users responded in")
 					strings.HasPrefix(textLC, "© reuters") || strings.HasPrefix(textLC, "please rate this") ||
 					strings.HasPrefix(textLC, "post a comment") || strings.Contains(textLC, "what you think...") ||
