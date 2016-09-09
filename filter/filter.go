@@ -1,8 +1,9 @@
 package filter
 
 import (
+	"log"
+	"regexp"
 	"strings"
-	_ "unicode"
 
 	"github.com/jlubawy/go-boilerpipe"
 )
@@ -80,6 +81,146 @@ func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
 //  private static boolean isDigit(final char c) {
 //    return c >= '0' && c <= '9';
 //  }
+
+type documentTitleMatchClassifier struct{}
+
+func DocumentTitleMatchClassifier(doc *boilerpipe.TextDocument) bool {
+	p := documentTitleMatchClassifier{}
+	return p.Process(doc)
+}
+
+func (p documentTitleMatchClassifier) Process(doc *boilerpipe.TextDocument) bool {
+	if len(doc.Title) == 0 {
+		return false
+	}
+
+	title := doc.Title
+	title = strings.Replace(title, "\u00a0", " ", -1)
+	title = strings.Replace(title, "'", "", -1)
+	title = strings.TrimSpace(title)
+	title = strings.ToLower(title)
+
+	if len(title) == 0 {
+		return false
+	}
+
+	potentialTitles := make(map[string]bool)
+	potentialTitles[title] = true
+
+	var pot string
+
+	pot = getLongestPart(title, "[ ]*[\\|»|-][ ]*")
+	if len(pot) > 0 {
+		potentialTitles[pot] = true
+	}
+	pot = getLongestPart(title, "[ ]*[\\|»|:][ ]*")
+	if len(pot) > 0 {
+		potentialTitles[pot] = true
+	}
+	pot = getLongestPart(title, "[ ]*[\\|»|:\\(\\)][ ]*")
+	if len(pot) > 0 {
+		potentialTitles[pot] = true
+	}
+	pot = getLongestPart(title, "[ ]*[\\|»|:\\(\\)\\-][ ]*")
+	if len(pot) > 0 {
+		potentialTitles[pot] = true
+	}
+	pot = getLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-][ ]*")
+	if len(pot) > 0 {
+		potentialTitles[pot] = true
+	}
+	pot = getLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-\u00a0][ ]*")
+	if len(pot) > 0 {
+		potentialTitles[pot] = true
+	}
+
+	addPotentialTitles(potentialTitles, title, "[ ]+[\\|][ ]+", 4)
+	addPotentialTitles(potentialTitles, title, "[ ]+[\\-][ ]+", 4)
+
+	potentialTitles[removeFirst(title, " - [^\\-]+$")] = true
+	potentialTitles[removeFirst(title, "^[^\\-]+ - ")] = true
+
+	hasChanged := false
+
+	for i := 0; i < len(doc.TextBlocks); i++ {
+		tb := doc.TextBlocks[i]
+
+		text := tb.Text
+		text = strings.Replace(text, "\u00a0", " ", -1)
+		text = strings.Replace(text, "'", "", -1)
+		text = strings.TrimSpace(text)
+		text = strings.ToLower(text)
+
+		if _, contains := potentialTitles[text]; contains {
+			tb.AddLabel(boilerpipe.LabelTitle)
+			hasChanged = true
+			break
+		}
+
+		text = strings.TrimSpace(regexp.MustCompile("[\\?\\!\\.\\-\\:]+").ReplaceAllString(text, ""))
+		if _, contains := potentialTitles[text]; contains {
+			tb.AddLabel(boilerpipe.LabelTitle)
+			hasChanged = true
+			break
+		}
+	}
+
+	return hasChanged
+}
+
+func removeFirst(s string, pattern string) string {
+	m := regexp.MustCompile(pattern).FindString(s)
+	if len(m) == 0 {
+		return s
+	}
+	return strings.Replace(s, m, "", 1)
+}
+
+func addPotentialTitles(potentialTitles map[string]bool, title string, pattern string, minWords int) {
+	parts := strings.Split(title, " ")
+	if len(parts) == 1 {
+		return
+	}
+
+	for _, p := range parts {
+		if strings.Contains(p, ".com") {
+			continue
+		}
+
+		numWords := len(regexp.MustCompile("[\b ]+").Split(p, -1))
+		if numWords >= minWords {
+			potentialTitles[p] = true
+		}
+	}
+}
+
+func getLongestPart(title, pattern string) string {
+	parts := regexp.MustCompile(pattern).Split(title, -1)
+	if len(parts) == 1 {
+		return ""
+	}
+
+	longestNumWords := 0
+	longestPart := ""
+
+	for _, p := range parts {
+		if strings.Contains(p, ".com") {
+			continue
+		}
+
+		numWords := len(regexp.MustCompile("[\b ]+").Split(p, -1))
+		if numWords > longestNumWords || len(p) > len(longestPart) {
+			longestNumWords = numWords
+			longestPart = p
+		}
+	}
+
+	if len(longestPart) == 0 {
+		return ""
+	}
+
+	return strings.TrimSpace(longestPart)
+}
 
 type trailingHeadlineToBoilerplate struct{}
 
@@ -178,13 +319,37 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 			}
 			if ok {
 				prevBlock.MergeNext(tb)
-				i++
+				doc.TextBlocks = append(doc.TextBlocks[:i], doc.TextBlocks[i+1:]...)
+				i--
 				hasChanged = true
 			} else {
 				prevBlock = tb
 			}
 		} else {
 			prevBlock = tb
+		}
+	}
+
+	return hasChanged
+}
+
+type boilerplateBlock struct{}
+
+func BoilerplateBlock(doc *boilerpipe.TextDocument) bool {
+	p := boilerplateBlock{}
+	return p.Process(doc)
+}
+
+func (p boilerplateBlock) Process(doc *boilerpipe.TextDocument) bool {
+	hasChanged := false
+
+	for i := 0; i < len(doc.TextBlocks); i++ {
+		tb := doc.TextBlocks[i]
+
+		if tb.IsContent == false && tb.HasLabel(boilerpipe.LabelTitle) == false {
+			doc.TextBlocks = append(doc.TextBlocks[:i], doc.TextBlocks[i+1:]...)
+			i--
+			hasChanged = true
 		}
 	}
 
@@ -327,6 +492,51 @@ func (p keepLargestFulltextBlock) Process(doc *boilerpipe.TextDocument) bool {
 	}
 
 	return true
+}
+
+type expandTitleToContent struct{}
+
+func ExpandTitleToContent(doc *boilerpipe.TextDocument) bool {
+	p := expandTitleToContent{}
+	return p.Process(doc)
+}
+
+func (p expandTitleToContent) Process(doc *boilerpipe.TextDocument) bool {
+	j := 0
+	title := -1
+	contentStart := -1
+
+	for i := range doc.TextBlocks {
+		tb := doc.TextBlocks[i]
+
+		if contentStart == -1 && tb.HasLabel(boilerpipe.LabelTitle) {
+			title = j
+			contentStart = -1
+		}
+
+		if contentStart == -1 && tb.IsContent {
+			contentStart = j
+		}
+
+		j++
+	}
+
+	if contentStart <= title || title == -1 {
+		return false
+	}
+
+	hasChanged := false
+	for i := range doc.TextBlocks[title:contentStart] {
+		tb := doc.TextBlocks[i]
+
+		if tb.HasLabel(boilerpipe.LabelMightBeContent) {
+			log.Println("Expand:", tb.Text)
+			hasChanged = (tb.IsContent == false) || hasChanged
+			tb.IsContent = true
+		}
+	}
+
+	return hasChanged
 }
 
 type largeBlockSameTagLevelToContent struct{}

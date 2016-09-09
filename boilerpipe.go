@@ -74,6 +74,7 @@ const (
 	LabelHeading
 	LabelMightBeContent
 	LabelVeryLikelyContent
+	LabelTitle
 )
 
 func (tb *TextBlock) AddLabel(label int) *TextBlock {
