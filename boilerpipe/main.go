@@ -27,6 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	extractor.EnableLogging(true)
 	isChanged := extractor.Article().Process(doc)
 
 	fmt.Println("isChanged:", isChanged)

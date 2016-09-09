@@ -93,7 +93,7 @@ func (TagActionInlineWhitespace) ChangesTagLevel() bool { return false }
 
 type TagActionInlineNoWhitespace struct{}
 
-func (ta TagActionInlineNoWhitespace) Start(h *ContentHandler) bool {
+func (TagActionInlineNoWhitespace) Start(h *ContentHandler) bool {
 	return false
 }
 
@@ -101,11 +101,21 @@ func (TagActionInlineNoWhitespace) End(h *ContentHandler) bool { return false }
 
 func (TagActionInlineNoWhitespace) ChangesTagLevel() bool { return false }
 
+type TagActionBlockTagLabel struct{ labelAction *LabelAction }
+
+func (ta TagActionBlockTagLabel) Start(h *ContentHandler) bool {
+	h.addLabelAction(ta.labelAction)
+	return true
+}
+
+func (TagActionBlockTagLabel) End(h *ContentHandler) bool { return true }
+func (TagActionBlockTagLabel) ChangesTagLevel() bool      { return true }
+
 type TagActionIgnoreableVoid struct{}
 
-func (ta TagActionIgnoreableVoid) Start(h *ContentHandler) bool { return false }
-func (TagActionIgnoreableVoid) End(h *ContentHandler) bool      { return false }
-func (TagActionIgnoreableVoid) ChangesTagLevel() bool           { return false }
+func (TagActionIgnoreableVoid) Start(h *ContentHandler) bool { return false }
+func (TagActionIgnoreableVoid) End(h *ContentHandler) bool   { return false }
+func (TagActionIgnoreableVoid) ChangesTagLevel() bool        { return false }
 
 // From DefaultTagActionMap.java
 var TagActionMap = map[atom.Atom]TagAction{
@@ -138,6 +148,10 @@ var TagActionMap = map[atom.Atom]TagAction{
 	atom.Var:    TagActionInlineNoWhitespace{},
 
 	// TODO: New in 1.3
+	atom.Li: TagActionBlockTagLabel{NewLabelAction(LabelList)},
+	atom.H1: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading1)},
+	atom.H2: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading2)},
+	atom.H3: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading3)},
 	//setTagAction("LI", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.LI)));
 	//setTagAction("H1", new CommonTagActions.BlockTagLabelAction(new LabelAction(DefaultLabels.H1,
 	//    DefaultLabels.HEADING)));
@@ -161,4 +175,18 @@ var TagActionMap = map[atom.Atom]TagAction{
 	atom.Source:   TagActionIgnoreableVoid{},
 	atom.Track:    TagActionIgnoreableVoid{},
 	atom.Wbr:      TagActionIgnoreableVoid{},
+}
+
+type LabelAction struct{ labels []Label }
+
+func NewLabelAction(labels ...Label) *LabelAction {
+	la := &LabelAction{
+		labels: make([]Label, 0),
+	}
+	la.labels = append(la.labels, labels...)
+	return la
+}
+
+func (la *LabelAction) AddTo(tb *TextBlock) {
+	tb.AddLabels(la.labels...)
 }

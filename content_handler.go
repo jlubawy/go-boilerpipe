@@ -2,6 +2,7 @@ package boilerpipe
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"regexp"
 	"strings"
@@ -41,8 +42,8 @@ type ContentHandler struct {
 	flush        bool
 	inAnchorText bool
 
-	//LinkedList<LinkedList<LabelAction>> labelStacks = new LinkedList<LinkedList<LabelAction>>();
-	//LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
+	labelStacks *list.List
+	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
 }
 
 func NewContentHandler() *ContentHandler {
@@ -53,6 +54,8 @@ func NewContentHandler() *ContentHandler {
 		depthBlockTag: -1,
 
 		textBlocks: make([]*TextBlock, 0),
+
+		labelStacks: list.New(),
 	}
 }
 
@@ -76,7 +79,7 @@ func (h *ContentHandler) String() string {
 }
 
 func (h *ContentHandler) StartElement(z *html.Tokenizer) {
-	// TODO: labelStacks.add(null);
+	h.labelStacks.PushBack(nil)
 
 	tn, _ := z.TagName()
 	a := atom.Lookup(tn)
@@ -117,7 +120,7 @@ func (h *ContentHandler) EndElement(z *html.Tokenizer) {
 
 	h.lastEndTag = a.String()
 
-	// TODO: labelStacks.removeLast()
+	h.labelStacks.Remove(h.labelStacks.Back())
 }
 
 type spaceRemover struct {
@@ -299,7 +302,7 @@ func (h *ContentHandler) FlushBlock() {
 	text := strings.TrimSpace(h.textBuffer.String())
 
 	if len(text) > 0 {
-		h.textBlocks = append(h.textBlocks, NewTextBlock(
+		h.addTextBlock(NewTextBlock(
 			text,
 			numWords,
 			numLinkedWords,
@@ -318,10 +321,50 @@ func (h *ContentHandler) FlushBlock() {
 	h.depthBlockTag = -1
 }
 
+func (h *ContentHandler) addTextBlock(tb *TextBlock) {
+	// TODO:
+	//for (Integer l : fontSizeStack) {
+	//  if (l != null) {
+	//    tb.addLabel("font-" + l);
+	//    break;
+	//  }
+	//}
+
+	for e := h.labelStacks.Back(); e != nil; e = e.Prev() {
+		if e.Value != nil {
+			labelStack := e.Value.(*list.List)
+
+			for e1 := labelStack.Back(); e1 != nil; e1 = e1.Prev() {
+				if e1.Value != nil {
+					labelActions := e1.Value.(*LabelAction)
+					labelActions.AddTo(tb)
+				}
+			}
+		}
+	}
+
+	h.textBlocks = append(h.textBlocks, tb)
+}
+
 func (h *ContentHandler) addWhitespaceIfNecessary() {
 	if h.sbLastWasWhitespace == false {
 		h.tokenBuffer.WriteRune(' ')
 		h.textBuffer.WriteRune(' ')
 		h.sbLastWasWhitespace = true
 	}
+}
+
+func (h *ContentHandler) addLabelAction(la *LabelAction) {
+	var labelStack *list.List
+	el := h.labelStacks.Back()
+
+	if el.Value == nil {
+		labelStack = list.New()
+		h.labelStacks.Remove(h.labelStacks.Back())
+		h.labelStacks.PushBack(labelStack)
+	} else {
+		labelStack = el.Value.(*list.List)
+	}
+
+	labelStack.PushBack(la)
 }

@@ -29,7 +29,7 @@ type TextBlock struct {
 
 	IsContent bool
 
-	labels map[int]bool
+	Labels map[Label]bool
 }
 
 var TextBlockEmptyStart = NewTextBlock("", 0, 0, 0, 0, math.MinInt32, 0)
@@ -47,7 +47,7 @@ func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrapp
 		OffsetBlocksEnd:        offsetBlocks,
 		TagLevel:               tagLevel,
 
-		labels: make(map[int]bool),
+		Labels: make(map[Label]bool),
 	}
 
 	if numWordsInWrappedLines == 0 {
@@ -69,21 +69,34 @@ func initDensities(tb *TextBlock) {
 	}
 }
 
+type Label string
+
 const (
-	LabelIndicatesEndOfText int = iota
-	LabelHeading
-	LabelMightBeContent
-	LabelVeryLikelyContent
-	LabelTitle
+	LabelIndicatesEndOfText Label = "IndicatesEndOfText"
+	LabelMightBeContent           = "MightBeContent"
+	LabelVeryLikelyContent        = "VeryLikelyContent"
+	LabelTitle                    = "Title"
+	LabelList                     = "List"
+	LabelHeading                  = "Heading"
+	LabelHeading1                 = "Heading1"
+	LabelHeading2                 = "Heading2"
+	LabelHeading3                 = "Heading3"
 )
 
-func (tb *TextBlock) AddLabel(label int) *TextBlock {
-	tb.labels[label] = true
+func (tb *TextBlock) AddLabel(label Label) *TextBlock {
+	tb.Labels[label] = true
 	return tb
 }
 
-func (tb *TextBlock) HasLabel(label int) bool {
-	_, hasLabel := tb.labels[label]
+func (tb *TextBlock) AddLabels(labels ...Label) *TextBlock {
+	for _, label := range labels {
+		tb.AddLabel(label)
+	}
+	return tb
+}
+
+func (tb *TextBlock) HasLabel(label Label) bool {
+	_, hasLabel := tb.Labels[label]
 	return hasLabel
 }
 
@@ -113,8 +126,8 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 	//  containedTextElements.or(next.containedTextElements);
 	//}
 
-	for k, v := range next.labels {
-		tb.labels[k] = v
+	for k, v := range next.Labels {
+		tb.Labels[k] = v
 	}
 
 	tb.TagLevel = int(math.Min(float64(tb.TagLevel), float64(next.TagLevel)))
