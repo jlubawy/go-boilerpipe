@@ -23,18 +23,23 @@ func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
 		numWords := tb.NumWords
 
 		if numWords < 50 {
-			text := tb.Text
+			text := strings.TrimSpace(tb.Text)
 
 			if len(text) >= 8 {
 				textLC := strings.ToLower(text)
 
-				if strings.HasPrefix(textLC, "comment") ||
-					//|| startsWithNumber(textLC, len, " comments", " users responded in")
-					strings.HasPrefix(textLC, "© reuters") || strings.HasPrefix(textLC, "please rate this") ||
-					strings.HasPrefix(textLC, "post a comment") || strings.Contains(textLC, "what you think...") ||
-					strings.Contains(textLC, "add your comment") || strings.Contains(textLC, "add comment") ||
-					strings.Contains(textLC, "reader views") || strings.Contains(textLC, "have your say") ||
-					strings.Contains(textLC, "reader comments") || strings.Contains(textLC, "rätta artikeln") ||
+				if strings.HasPrefix(textLC, "comments") ||
+					StartsWithNumber(textLC, " comments", " users responded in") ||
+					strings.HasPrefix(textLC, "© reuters") ||
+					strings.HasPrefix(textLC, "please rate this") ||
+					strings.HasPrefix(textLC, "post a comment") ||
+					strings.Contains(textLC, "what you think...") ||
+					strings.Contains(textLC, "add your comment") ||
+					strings.Contains(textLC, "add comment") ||
+					strings.Contains(textLC, "reader views") ||
+					strings.Contains(textLC, "have your say") ||
+					strings.Contains(textLC, "reader comments") ||
+					strings.Contains(textLC, "rätta artikeln") ||
 					textLC == "thanks for your comments - this feedback is now closed" {
 
 					tb.AddLabel(boilerpipe.LabelIndicatesEndOfText)
@@ -52,34 +57,27 @@ func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
 	return hasChanged
 }
 
-//  TODO:
-// /**
-//   * Checks whether the given text t starts with a sequence of digits, followed by one of the given
-//   * strings.
-//   *
-//   * @param t The text to examine
-//   * @param len The length of the text to examine
-//   * @param str Any strings that may follow the digits.
-//   * @return true if at least one combination matches
-//   */
-//  private static boolean startsWithNumber(final String t, final int len, final String... str) {
-//    int j = 0;
-//    while (j < len && isDigit(t.charAt(j))) {
-//      j++;
-//    }
-//    if (j != 0) {
-//      for (String s : str) {
-//        if (t.startsWith(s, j)) {
-//          return true;
-//        }
-//      }
-//    }
-//    return false;
-//  }
-//
-//  private static boolean isDigit(final char c) {
-//    return c >= '0' && c <= '9';
-//  }
+// StartsWithNumber returns true if a string contains any of the prefixes
+// after skipping over any digits.
+func StartsWithNumber(text string, prefixes ...string) bool {
+	i := 0
+	for i < len(text) && isDigit(text[i]) {
+		i++
+	}
+
+	if i != 0 {
+		for _, p := range prefixes {
+			if strings.HasPrefix(text[i:], p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
 
 func DocumentTitleMatchClassifier() boilerpipe.Processor { return documentTitleMatchClassifier{} }
 
@@ -107,27 +105,27 @@ func (p documentTitleMatchClassifier) Process(doc *boilerpipe.TextDocument) bool
 
 	var pot string
 
-	pot = getLongestPart(title, "[ ]*[\\|»|-][ ]*")
+	pot = GetLongestPart(title, "[ ]*[\\|»|-][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = getLongestPart(title, "[ ]*[\\|»|:][ ]*")
+	pot = GetLongestPart(title, "[ ]*[\\|»|:][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = getLongestPart(title, "[ ]*[\\|»|:\\(\\)][ ]*")
+	pot = GetLongestPart(title, "[ ]*[\\|»|:\\(\\)][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = getLongestPart(title, "[ ]*[\\|»|:\\(\\)\\-][ ]*")
+	pot = GetLongestPart(title, "[ ]*[\\|»|:\\(\\)\\-][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = getLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-][ ]*")
+	pot = GetLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = getLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-\u00a0][ ]*")
+	pot = GetLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-\u00a0][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
@@ -135,8 +133,8 @@ func (p documentTitleMatchClassifier) Process(doc *boilerpipe.TextDocument) bool
 	addPotentialTitles(potentialTitles, title, "[ ]+[\\|][ ]+", 4)
 	addPotentialTitles(potentialTitles, title, "[ ]+[\\-][ ]+", 4)
 
-	potentialTitles[removeFirst(title, " - [^\\-]+$")] = true
-	potentialTitles[removeFirst(title, "^[^\\-]+ - ")] = true
+	potentialTitles[RemoveFirst(title, " - [^\\-]+$")] = true
+	potentialTitles[RemoveFirst(title, "^[^\\-]+ - ")] = true
 
 	hasChanged := false
 
@@ -166,7 +164,7 @@ func (p documentTitleMatchClassifier) Process(doc *boilerpipe.TextDocument) bool
 	return hasChanged
 }
 
-func removeFirst(s string, pattern string) string {
+func RemoveFirst(s string, pattern string) string {
 	m := regexp.MustCompile(pattern).FindString(s)
 	if len(m) == 0 {
 		return s
@@ -192,7 +190,7 @@ func addPotentialTitles(potentialTitles map[string]bool, title string, pattern s
 	}
 }
 
-func getLongestPart(title, pattern string) string {
+func GetLongestPart(title, pattern string) string {
 	parts := regexp.MustCompile(pattern).Split(title, -1)
 	if len(parts) == 1 {
 		return ""

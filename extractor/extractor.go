@@ -12,16 +12,15 @@ var loggingEnabled = false
 
 func EnableLogging(enabled bool) { loggingEnabled = enabled }
 
-type Extractor struct {
-	name     string
-	pipeline []boilerpipe.Processor
+type Extractor interface {
+	boilerpipe.Processor
+
+	Pipeline() []boilerpipe.Processor
 }
 
-func (e *Extractor) Name() string { return e.name }
-
-func (e *Extractor) Process(doc *boilerpipe.TextDocument) bool {
+func defaultExtractorProcessor(e Extractor, doc *boilerpipe.TextDocument) bool {
 	hasChanged := false
-	for _, p := range e.pipeline {
+	for _, p := range e.Pipeline() {
 		hasChanged = p.Process(doc) || hasChanged
 
 		if loggingEnabled {
@@ -43,9 +42,16 @@ func (e *Extractor) Process(doc *boilerpipe.TextDocument) bool {
 	return hasChanged
 }
 
-var articleExtractor = &Extractor{
-	name: "Article",
-	pipeline: []boilerpipe.Processor{
+type articleExtractor struct{}
+
+func (e articleExtractor) Name() string { return "Article" }
+
+func (e articleExtractor) Process(doc *boilerpipe.TextDocument) bool {
+	return defaultExtractorProcessor(e, doc)
+}
+
+func (e articleExtractor) Pipeline() []boilerpipe.Processor {
+	return []boilerpipe.Processor{
 		filter.TerminatingBlocks(),
 		filter.DocumentTitleMatchClassifier(),
 		filter.NumWordsRulesClassifier(),
@@ -58,10 +64,10 @@ var articleExtractor = &Extractor{
 		filter.ExpandTitleToContent(),
 		filter.LargeBlockSameTagLevelToContent(),
 		filter.ListAtEnd(),
-	},
+	}
 }
 
-func Article() boilerpipe.Processor { return articleExtractor }
+func Article() boilerpipe.Processor { return articleExtractor{} }
 
 var processorTemplStr = `Processor  : {{.Name}}
 HasChanged : {{.HasChanged}}
