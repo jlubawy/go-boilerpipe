@@ -22,6 +22,10 @@ func TestArticleExtractor(t *testing.T) {
 
 		t.Logf("Opening test file: '%s'", path)
 
+		dir := filepath.Dir(path)
+		htmlFilename := filepath.Base(path)
+		txtFilename := htmlFilename[:strings.LastIndex(htmlFilename, ".")] + ".txt"
+
 		// Open the input html document
 		f, err := os.Open(path)
 		if err != nil {
@@ -30,8 +34,7 @@ func TestArticleExtractor(t *testing.T) {
 		defer f.Close()
 
 		// Open and read the expected article text
-		expPath := path[:strings.LastIndex(path, ".")] + ".txt"
-		expText, err := ioutil.ReadFile(expPath)
+		expText, err := ioutil.ReadFile(filepath.Join(dir, txtFilename))
 		if err != nil {
 			t.Error(err)
 		}
@@ -41,15 +44,19 @@ func TestArticleExtractor(t *testing.T) {
 			t.Error(err)
 		}
 
-		//EnableLogging(true)
+		// Process the HTML document
+		EnableLogging("testresults", false)
 		Article().Process(doc)
-
 		actualContent := doc.Content()
-		//t.Logf(`expected='%s'\n`, expText)
-		t.Logf(`actual='%s'\n`, actualContent)
 
+		// Write output to test results file
+		if err := ioutil.WriteFile(filepath.Join("testresults", txtFilename), []byte(actualContent), 0644); err != nil {
+			t.Error(err)
+		}
+
+		// Compare to the expected
 		if actualContent != string(expText) {
-			t.Fail()
+			t.Errorf("expected does not match actual")
 		}
 
 		return nil

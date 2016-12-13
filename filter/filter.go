@@ -260,15 +260,15 @@ type blockProximityFusionParams struct {
 func (p *blockProximityFusionParams) Name() string { return p.name }
 
 func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool {
+	if len(doc.TextBlocks) < 2 {
+		return false
+	}
+
 	hasChanged := false
 
 	maxBlocksDistance := p.maxBlocksDistance
 	contentOnly := p.contentOnly
 	sameTagLevelOnly := p.sameTagLevelOnly
-
-	if len(doc.TextBlocks) < 2 {
-		return false
-	}
 
 	var prevBlock *boilerpipe.TextBlock
 	offset := 0
@@ -292,7 +292,7 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 		offset = 1
 	}
 
-	for i := 0; i < len(doc.TextBlocks); i++ {
+	for i := offset; i < len(doc.TextBlocks); i++ {
 		tb := doc.TextBlocks[i]
 
 		if tb.IsContent == false {
@@ -308,13 +308,18 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 					ok = false
 				}
 			}
+
 			if ok && sameTagLevelOnly && prevBlock.TagLevel != tb.TagLevel {
 				ok = false
 			}
+
 			if ok {
 				prevBlock.MergeNext(tb)
+
+				// Remove merged text block
 				doc.TextBlocks = append(doc.TextBlocks[:i], doc.TextBlocks[i+1:]...)
 				i--
+
 				hasChanged = true
 			} else {
 				prevBlock = tb

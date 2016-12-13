@@ -206,12 +206,11 @@ func (h *ContentHandler) TextToken(z *html.Tokenizer) {
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
 
-// TODO: Improve word tokenization
-var (
-	reWordBoundary       = regexp.MustCompile("\\b")
-	reNotWordBoundary    = regexp.MustCompile("[\u2063]*([\\\"'\\.,\\!\\@\\-\\:\\;\\$\\?\\(\\)/])[\u2063]*")
-	reValidWordCharacter = regexp.MustCompile("[\\p{L}\\p{Nd}\\p{Nl}\\p{No}]")
-)
+func tokenize(b *bytes.Buffer) []string {
+	return strings.Split(b.String(), " ")
+}
+
+var reValidWordCharacter = regexp.MustCompile(`[\w]`)
 
 func isWord(tok string) bool {
 	return reValidWordCharacter.MatchString(tok)
@@ -242,8 +241,7 @@ func (h *ContentHandler) FlushBlock() {
 		}
 	}
 
-	// TODO: Improve tokenization of words
-	tokens := strings.Split(h.tokenBuffer.String(), " ")
+	tokens := tokenize(h.tokenBuffer)
 
 	const maxLineLength = 80
 

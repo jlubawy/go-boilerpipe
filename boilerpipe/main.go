@@ -27,7 +27,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	//extractor.EnableLogging(true)
 	extractor.Article().Process(doc)
 
 	fmt.Println("Title:", doc.Title)

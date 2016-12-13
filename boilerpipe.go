@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -202,7 +203,7 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 		}
 	}
 
-	return buf.String()
+	return strings.TrimSpace(buf.String())
 }
 
 type Processor interface {
