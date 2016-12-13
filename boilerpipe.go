@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-const VERSION = "v0.0.1"
+const VERSION = "v0.0.2"
 
 type TextBlock struct {
 	Text string
