@@ -13,8 +13,9 @@ import (
 )
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: boilerpipe [OPTIONS] <article URL>\n")
+	fmt.Fprintf(os.Stderr, "usage: boilerpipe [OPTIONS] <article URL>\n\n")
 	flag.PrintDefaults()
+	fmt.Fprintf(os.Stderr, "\nVersion: %s", boilerpipe.VERSION)
 	os.Exit(1)
 }
 
@@ -85,7 +86,13 @@ func Index(w http.ResponseWriter, r *http.Request) (int, error) {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
-	if err := indexTempl.Execute(w, nil); err != nil {
+	data := struct {
+		Version string
+	}{
+		Version: boilerpipe.VERSION,
+	}
+
+	if err := indexTempl.Execute(w, data); err != nil {
 		return http.StatusInternalServerError, err
 	}
 
@@ -108,10 +115,12 @@ func Extract(w http.ResponseWriter, r *http.Request) (int, error) {
 	}
 
 	data := struct {
+		Version string
 		URL     string
 		Title   string
 		Content string
 	}{
+		Version: boilerpipe.VERSION,
 		URL:     url,
 		Title:   doc.Title,
 		Content: doc.Content(),
@@ -127,7 +136,7 @@ func Extract(w http.ResponseWriter, r *http.Request) (int, error) {
 var indexTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
 <html>
     <head>
-        <title>Boilerpipe</title>
+        <title>Boilerpipe {{.Version}}</title>
 
         <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
     </head>
@@ -138,7 +147,7 @@ var indexTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
 				    <nav class="navbar navbar-default">
 					    <div class="container-fluid">
 					        <div class="navbar-header">
-					            <a class="navbar-brand" href="#">Boilerpipe</a>
+					            <a class="navbar-brand" href="#">Boilerpipe {{.Version}}</a>
 					        </div>
 					    </div>
 					</nav>
@@ -158,12 +167,23 @@ var indexTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
 var extractTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
 <html>
     <head>
-        <title>Boilerpipe | {{.Title}}</title>
+        <title>Boilerpipe {{.Version}} | {{.Title}}</title>
 
         <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
     </head>
     <body>
     	<div class="container">
+    		<div class="row">
+    			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+				    <nav class="navbar navbar-default">
+					    <div class="container-fluid">
+					        <div class="navbar-header">
+					            <a class="navbar-brand" href="#">Boilerpipe {{.Version}}</a>
+					        </div>
+					    </div>
+					</nav>
+				</div>
+			</div>
     		<div class="row">
     			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
 		    		<h1>{{.Title}}</h1>

@@ -9,6 +9,8 @@ import (
 	"golang.org/x/net/html"
 )
 
+const VERSION = "v0.0.1"
+
 type TextBlock struct {
 	Text string
 
