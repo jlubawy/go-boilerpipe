@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 
@@ -9,26 +12,165 @@ import (
 	"github.com/jlubawy/go-boilerpipe/extractor"
 )
 
-func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "must specify url")
-		os.Exit(1)
-	}
+func usage() {
+	fmt.Fprintln(os.Stderr, "usage: boilerpipe [OPTIONS] <article URL>\n")
+	flag.PrintDefaults()
+	os.Exit(1)
+}
 
-	resp, err := http.Get(os.Args[1])
+func main() {
+	flag.Usage = usage
+	port := flag.String("http", "", "start an HTTP server on the port specified if any (e.g. ':8080')")
+	flag.Parse()
+
+	if *port == "" {
+		// If no port is provided take a URL from the command line and output the
+		// results to stdout.
+
+		url := flag.Arg(0)
+		if url == "" {
+			fmt.Fprintln(os.Stderr, "Must specify url.\n")
+			flag.Usage()
+		}
+
+		doc, err := process(url)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+
+		fmt.Print(doc.Content())
+	} else {
+		// Else if a port is provided start the HTTP server
+
+		http.HandleFunc("/", Handle(Index))
+		http.HandleFunc("/extract", Handle(Extract))
+
+		fmt.Fprintln(os.Stderr, "Starting server on port", *port)
+		if err := http.ListenAndServe(*port, nil); err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+	}
+}
+
+func process(url string) (*boilerpipe.TextDocument, error) {
+	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	doc, err := boilerpipe.NewTextDocument(resp.Body)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	extractor.Article().Process(doc)
-
-	fmt.Println("Title:", doc.Title)
-	fmt.Println("Content:", doc.Content())
+	return doc, nil
 }
+
+func Handle(handler func(w http.ResponseWriter, r *http.Request) (int, error)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		code, err := handler(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+		}
+	}
+}
+
+var ErrMethodNotSupported = errors.New("Method not supported")
+
+func Index(w http.ResponseWriter, r *http.Request) (int, error) {
+	if r.Method != "GET" {
+		return http.StatusMethodNotAllowed, ErrMethodNotSupported
+	}
+
+	if err := indexTempl.Execute(w, nil); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return http.StatusOK, nil
+}
+
+func Extract(w http.ResponseWriter, r *http.Request) (int, error) {
+	if r.Method != "GET" {
+		return http.StatusMethodNotAllowed, ErrMethodNotSupported
+	}
+
+	url := r.FormValue("url")
+	if url == "" {
+		return http.StatusBadRequest, errors.New("Must specify url.")
+	}
+
+	doc, err := process(url)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	data := struct {
+		URL     string
+		Title   string
+		Content string
+	}{
+		URL:     url,
+		Title:   doc.Title,
+		Content: doc.Content(),
+	}
+
+	if err := extractTempl.Execute(w, data); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return http.StatusOK, nil
+}
+
+var indexTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
+<html>
+    <head>
+        <title>Boilerpipe</title>
+
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    </head>
+    <body>
+    	<div class="container">
+    		<div class="row">
+    			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+				    <nav class="navbar navbar-default">
+					    <div class="container-fluid">
+					        <div class="navbar-header">
+					            <a class="navbar-brand" href="#">Boilerpipe</a>
+					        </div>
+					    </div>
+					</nav>
+			    	<form method="GET" action="extract" target="_blank">
+						<div class="form-group">
+							<label for="txtUrl">Article URL</label>
+							<input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
+						</div>
+						<button type="submit" class="btn btn-default">Submit</button>
+			    	</form>
+		    	</div>
+	    	</div>
+    	</div>
+    </body>
+</html>`))
+
+var extractTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
+<html>
+    <head>
+        <title>Boilerpipe | {{.Title}}</title>
+
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    </head>
+    <body>
+    	<div class="container">
+    		<div class="row">
+    			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+		    		<h1>{{.Title}}</h1>
+		    		<h2>{{.URL}}</h2>
+					<p>{{.Content}}</p>
+				</div>
+			</div>
+    	</div>
+    </body>
+</html>`))
