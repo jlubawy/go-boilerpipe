@@ -21,11 +21,29 @@ func usage() {
 
 func main() {
 	flag.Usage = usage
+	file := flag.String("file", "", "extract content from a file")
 	port := flag.String("http", "", "start an HTTP server on the port specified if any (e.g. ':8080')")
 	flag.Parse()
 
-	if *port == "" {
-		// If no port is provided take a URL from the command line and output the
+	if *file != "" {
+		// If a file path was provided then read from the file
+		f, err := os.Open(*file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		defer f.Close()
+
+		text, err := boilerpipe.ExtractText(f)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		fmt.Print(text)
+
+	} else if *port == "" {
+		// Else if no port is provided take a URL from the command line and output the
 		// results to stdout.
 
 		url := flag.Arg(0)
@@ -37,9 +55,11 @@ func main() {
 		doc, err := process(url)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
 
 		fmt.Print(doc.Content())
+
 	} else {
 		// Else if a port is provided start the HTTP server
 
@@ -67,6 +87,7 @@ func process(url string) (*boilerpipe.TextDocument, error) {
 	}
 
 	extractor.Article().Process(doc)
+
 	return doc, nil
 }
 

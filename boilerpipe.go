@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 const VERSION = "v0.0.2"
@@ -205,10 +207,66 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 		}
 	}
 
-	return strings.TrimSpace(buf.String())
+	return html.EscapeString(strings.Trim(buf.String(), " \n"))
 }
 
 type Processor interface {
 	Name() string
 	Process(*TextDocument) bool
+}
+
+var reMultiSpace = regexp.MustCompile(`[\s]+`)
+
+func ExtractText(r io.Reader) (string, error) {
+	z := html.NewTokenizer(r)
+	buf := &bytes.Buffer{}
+
+	h := NewContentHandler()
+
+	for {
+		tt := z.Next()
+
+		switch tt {
+		case html.ErrorToken:
+			if z.Err() == io.EOF {
+				goto DONE
+			} else {
+				return "", z.Err()
+			}
+
+		case html.TextToken:
+			if h.depthIgnoreable == 0 {
+				var skipWhitespace bool
+
+				if h.lastEndTag != "" {
+					a := atom.Lookup([]byte(h.lastEndTag))
+					ta, ok := TagActionMap[a]
+					if ok {
+						switch ta.(type) {
+						case TagActionAnchor, TagActionInlineNoWhitespace:
+							skipWhitespace = true
+						}
+					}
+				}
+
+				if !skipWhitespace {
+					buf.WriteRune(' ')
+				}
+
+				buf.WriteString(string(z.Text()))
+			}
+
+		case html.StartTagToken:
+			h.StartElement(z)
+
+		case html.EndTagToken:
+			h.EndElement(z)
+
+		case html.SelfClosingTagToken, html.CommentToken, html.DoctypeToken:
+			// do nothing
+		}
+	}
+
+DONE:
+	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
 }
