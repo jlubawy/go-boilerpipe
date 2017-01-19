@@ -6,6 +6,7 @@ import (
 	"math"
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -136,6 +137,7 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 
 type TextDocument struct {
 	Title      string
+	Time       time.Time
 	TextBlocks []*TextBlock
 }
 
@@ -175,6 +177,7 @@ DONE:
 
 	doc = &TextDocument{
 		Title:      h.title,
+		Time:       h.time,
 		TextBlocks: h.textBlocks,
 	}
 

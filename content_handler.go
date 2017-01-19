@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"golang.org/x/net/html"
@@ -17,6 +18,7 @@ const ANCHOR_TEXT_END = ">\ue00a$"
 
 type ContentHandler struct {
 	title string
+	time  time.Time
 
 	tokenBuffer *bytes.Buffer
 	textBuffer  *bytes.Buffer
@@ -86,6 +88,25 @@ func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 
 	ta, ok := TagActionMap[a]
 	if ok {
+		switch ta.(type) {
+		case TagActionTime:
+			for {
+				key, val, _ := z.TagAttr()
+				if key == nil {
+					break
+				} else {
+					keyS := string(key)
+					if keyS == "datetime" {
+						t, err := time.Parse(time.RFC3339, string(val))
+						if err == nil {
+							h.time = t
+						}
+						break
+					}
+				}
+			}
+		}
+
 		if ta.ChangesTagLevel() {
 			h.depthTag++
 		}

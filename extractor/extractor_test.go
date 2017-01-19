@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jlubawy/go-boilerpipe"
 )
@@ -48,6 +49,11 @@ func TestArticleExtractor(t *testing.T) {
 		EnableLogging("testresults", false)
 		Article().Process(doc)
 		actualContent := doc.Content()
+
+		expTime, _ := time.Parse(time.RFC3339, "2013-11-15T00:00:00+00:00")
+		if !doc.Time.Equal(expTime) {
+			t.Fail()
+		}
 
 		// Write output to test results file
 		if err := ioutil.WriteFile(filepath.Join("testresults", txtFilename), []byte(actualContent), 0644); err != nil {

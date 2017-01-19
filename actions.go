@@ -93,13 +93,9 @@ func (TagActionInlineWhitespace) ChangesTagLevel() bool { return false }
 
 type TagActionInlineNoWhitespace struct{}
 
-func (TagActionInlineNoWhitespace) Start(h *ContentHandler) bool {
-	return false
-}
-
-func (TagActionInlineNoWhitespace) End(h *ContentHandler) bool { return false }
-
-func (TagActionInlineNoWhitespace) ChangesTagLevel() bool { return false }
+func (TagActionInlineNoWhitespace) Start(h *ContentHandler) bool { return false }
+func (TagActionInlineNoWhitespace) End(h *ContentHandler) bool   { return false }
+func (TagActionInlineNoWhitespace) ChangesTagLevel() bool        { return false }
 
 type TagActionBlockTagLabel struct{ labelAction *LabelAction }
 
@@ -107,7 +103,6 @@ func (ta TagActionBlockTagLabel) Start(h *ContentHandler) bool {
 	h.addLabelAction(ta.labelAction)
 	return true
 }
-
 func (TagActionBlockTagLabel) End(h *ContentHandler) bool { return true }
 func (TagActionBlockTagLabel) ChangesTagLevel() bool      { return true }
 
@@ -116,6 +111,12 @@ type TagActionIgnoreableVoid struct{}
 func (TagActionIgnoreableVoid) Start(h *ContentHandler) bool { return false }
 func (TagActionIgnoreableVoid) End(h *ContentHandler) bool   { return false }
 func (TagActionIgnoreableVoid) ChangesTagLevel() bool        { return false }
+
+type TagActionTime struct{}
+
+func (TagActionTime) Start(h *ContentHandler) bool { return true }
+func (TagActionTime) End(h *ContentHandler) bool   { return true }
+func (TagActionTime) ChangesTagLevel() bool        { return true }
 
 // From DefaultTagActionMap.java
 var TagActionMap = map[atom.Atom]TagAction{
@@ -169,6 +170,8 @@ var TagActionMap = map[atom.Atom]TagAction{
 	atom.Source:   TagActionIgnoreableVoid{},
 	atom.Track:    TagActionIgnoreableVoid{},
 	atom.Wbr:      TagActionIgnoreableVoid{},
+
+	atom.Time: TagActionTime{},
 }
 
 type LabelAction struct{ labels []Label }
