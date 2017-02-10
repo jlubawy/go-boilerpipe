@@ -46,6 +46,8 @@ type ContentHandler struct {
 
 	labelStacks *list.List
 	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
+
+	errs []error
 }
 
 func NewContentHandler() *ContentHandler {
@@ -58,7 +60,13 @@ func NewContentHandler() *ContentHandler {
 		textBlocks: make([]*TextBlock, 0),
 
 		labelStacks: list.New(),
+
+		errs: make([]error, 0),
 	}
+}
+
+func (h *ContentHandler) Errors() []error {
+	return h.errs
 }
 
 func (h *ContentHandler) String() string {
@@ -228,7 +236,7 @@ func (h *ContentHandler) TextToken(z *html.Tokenizer) {
 }
 
 func tokenize(b *bytes.Buffer) []string {
-	return strings.Split(b.String(), " ")
+	return reMultiSpace.Split(b.String(), -1)
 }
 
 var reValidWordCharacter = regexp.MustCompile(`[\w]`)

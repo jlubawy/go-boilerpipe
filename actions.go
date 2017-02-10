@@ -29,9 +29,9 @@ func (TagActionIgnorable) ChangesTagLevel() bool { return true }
 type TagActionAnchor struct{}
 
 func (ta TagActionAnchor) Start(h *ContentHandler) bool {
-
 	if h.depthAnchor > 0 {
-		panic(errors.New("input contains nested <a> elements"))
+		h.errs = append(h.errs, errors.New("input contains nested <a> elements"))
+		return false
 	}
 
 	h.depthAnchor++
@@ -45,7 +45,13 @@ func (ta TagActionAnchor) Start(h *ContentHandler) bool {
 
 	return false
 }
+
 func (TagActionAnchor) End(h *ContentHandler) bool {
+	if h.depthAnchor == 0 {
+		h.errs = append(h.errs, errors.New("input contains unopened </a> element"))
+		return false
+	}
+
 	h.depthAnchor--
 
 	if h.depthAnchor == 0 {

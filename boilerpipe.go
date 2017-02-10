@@ -139,6 +139,8 @@ type TextDocument struct {
 	Title      string
 	Time       time.Time
 	TextBlocks []*TextBlock
+
+	errs []error
 }
 
 func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
@@ -179,9 +181,15 @@ DONE:
 		Title:      h.title,
 		Time:       h.time,
 		TextBlocks: h.textBlocks,
+
+		errs: h.Errors(),
 	}
 
 	return
+}
+
+func (doc *TextDocument) Errors() []error {
+	return doc.errs
 }
 
 func (doc *TextDocument) Content() string {

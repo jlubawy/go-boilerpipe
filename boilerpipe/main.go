@@ -23,7 +23,12 @@ func main() {
 	flag.Usage = usage
 	file := flag.String("file", "", "extract content from a file")
 	port := flag.String("http", "", "start an HTTP server on the port specified if any (e.g. ':8080')")
+	debug := flag.Bool("debug", false, "enable debug logging in the current directory")
 	flag.Parse()
+
+	if *debug {
+		extractor.EnableLogging(".", true)
+	}
 
 	if *file != "" {
 		// If a file path was provided then read from the file
@@ -56,6 +61,12 @@ func main() {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
+		}
+
+		if errs := doc.Errors(); len(errs) > 0 {
+			for _, err := range errs {
+				fmt.Fprintln(os.Stderr, "Error:", err.Error())
+			}
 		}
 
 		fmt.Print(doc.Content())

@@ -174,7 +174,7 @@ var processorTemplStr = `<!DOCTYPE html>
 func LabelCSV(labels map[boilerpipe.Label]bool) string {
 	ls := make([]string, len(labels))
 	i := 0
-	for label, _ := range labels {
+	for label := range labels {
 		ls[i] = string(label)
 		i++
 	}
