@@ -10,6 +10,7 @@ import (
 
 	"github.com/jlubawy/go-boilerpipe"
 	"github.com/jlubawy/go-boilerpipe/extractor"
+	url "github.com/jlubawy/go-boilerpipe/normurl"
 )
 
 func usage() {
@@ -79,14 +80,15 @@ func main() {
 	}
 }
 
-func process(url string) (*boilerpipe.TextDocument, error) {
-	resp, err := http.Get(url)
+func process(rawurl string) (*boilerpipe.TextDocument, error) {
+	u, err := url.Parse(rawurl)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	doc, err := boilerpipe.NewTextDocument(resp.Body)
+	ur := boilerpipe.NewURLReader(http.DefaultClient, u)
+
+	doc, err := boilerpipe.NewTextDocument(ur)
 	if err != nil {
 		return nil, err
 	}

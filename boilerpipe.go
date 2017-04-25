@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	url "github.com/jlubawy/go-boilerpipe/normurl"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -159,6 +162,16 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 
 	h := NewContentHandler()
 
+	doc = &TextDocument{}
+
+	if v, ok := r.(*URLReader); ok {
+		if d, exists := v.URL().Date(); exists {
+			doc.Time = d
+		}
+	}
+
+	fmt.Println(doc.Time)
+
 	for {
 		tt := z.Next()
 
@@ -194,11 +207,10 @@ DONE:
 		}
 	}
 
-	doc = &TextDocument{
-		Title:      h.title,
-		Time:       h.time,
-		TextBlocks: h.textBlocks,
-	}
+	// Set the rest of the document fields
+	doc.Title = h.title
+	doc.Time = h.time
+	doc.TextBlocks = h.textBlocks
 
 	return
 }
@@ -315,4 +327,42 @@ func (as *AtomStack) Pop() atom.Atom {
 	a := as.a[len(as.a)-1]
 	as.a = as.a[:len(as.a)-1]
 	return a
+}
+
+type URLReader struct {
+	client *http.Client
+	r      io.Reader
+	u      *url.URL
+}
+
+func NewURLReader(client *http.Client, u *url.URL) *URLReader {
+	return &URLReader{
+		client: client,
+		u:      u,
+	}
+}
+
+func (r *URLReader) URL() *url.URL {
+	return r.u
+}
+
+func (r *URLReader) Read(p []byte) (n int, err error) {
+	if r.r != nil {
+		return r.r.Read(p)
+	}
+
+	resp, err := r.client.Get(r.u.String())
+	if err != nil {
+		return 0, err
+	}
+	r.r = resp.Body
+
+	return r.r.Read(p)
+}
+
+func (r *URLReader) Close() error {
+	if r.r == nil {
+		return nil
+	}
+	return r.Close()
 }
