@@ -63,12 +63,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		if errs := doc.Errors(); len(errs) > 0 {
-			for _, err := range errs {
-				fmt.Fprintln(os.Stderr, "Error:", err.Error())
-			}
-		}
-
 		fmt.Print(doc.Content())
 
 	} else {

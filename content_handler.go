@@ -48,6 +48,8 @@ type ContentHandler struct {
 	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
 
 	errs []error
+
+	atomStack *AtomStack
 }
 
 func NewContentHandler() *ContentHandler {
@@ -62,6 +64,8 @@ func NewContentHandler() *ContentHandler {
 		labelStacks: list.New(),
 
 		errs: make([]error, 0),
+
+		atomStack: NewAtomStack(),
 	}
 }
 
@@ -93,6 +97,8 @@ func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 
 	tn, _ := z.TagName()
 	a := atom.Lookup(tn)
+
+	h.atomStack.Push(a)
 
 	ta, ok := TagActionMap[a]
 	if ok {
@@ -131,6 +137,11 @@ func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 func (h *ContentHandler) EndElement(z *html.Tokenizer) {
 	tn, _ := z.TagName()
 	a := atom.Lookup(tn)
+
+	pa := h.atomStack.Pop()
+	if pa != a {
+		return // malformed HTML, missing closing tag
+	}
 
 	ta, ok := TagActionMap[a]
 	if ok {

@@ -2,6 +2,7 @@ package boilerpipe
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math"
 	"regexp"
@@ -139,8 +140,18 @@ type TextDocument struct {
 	Title      string
 	Time       time.Time
 	TextBlocks []*TextBlock
+}
 
+type TextDocumentError struct {
 	errs []error
+}
+
+func (e TextDocumentError) Error() string {
+	buf := &bytes.Buffer{}
+	for _, err := range e.errs {
+		fmt.Fprintln(buf, err.Error())
+	}
+	return buf.String()
 }
 
 func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
@@ -177,19 +188,19 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 DONE:
 	h.FlushBlock()
 
+	if errs := h.Errors(); len(errs) > 0 {
+		err = TextDocumentError{
+			errs: errs,
+		}
+	}
+
 	doc = &TextDocument{
 		Title:      h.title,
 		Time:       h.time,
 		TextBlocks: h.textBlocks,
-
-		errs: h.Errors(),
 	}
 
 	return
-}
-
-func (doc *TextDocument) Errors() []error {
-	return doc.errs
 }
 
 func (doc *TextDocument) Content() string {
@@ -280,4 +291,28 @@ func ExtractText(r io.Reader) (string, error) {
 
 DONE:
 	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
+}
+
+type AtomStack struct {
+	a []atom.Atom
+}
+
+func NewAtomStack() *AtomStack {
+	return &AtomStack{
+		a: make([]atom.Atom, 0),
+	}
+}
+
+func (as *AtomStack) Push(a atom.Atom) *AtomStack {
+	as.a = append(as.a, a)
+	return as
+}
+
+func (as *AtomStack) Pop() atom.Atom {
+	if len(as.a) == 0 {
+		return atom.Atom(0)
+	}
+	a := as.a[len(as.a)-1]
+	as.a = as.a[:len(as.a)-1]
+	return a
 }
