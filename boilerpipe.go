@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-const VERSION = "v0.0.3"
+const VERSION = "v0.0.4"
 
 type TextBlock struct {
 	Text string
