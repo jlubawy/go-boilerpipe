@@ -170,8 +170,6 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 		}
 	}
 
-	fmt.Println(doc.Time)
-
 	for {
 		tt := z.Next()
 
@@ -209,7 +207,9 @@ DONE:
 
 	// Set the rest of the document fields
 	doc.Title = h.title
-	doc.Time = h.time
+	if doc.Time.Equal(time.Time{}) {
+		doc.Time = h.time
+	}
 	doc.TextBlocks = h.textBlocks
 
 	return

@@ -234,10 +234,13 @@ func (u *URL) Date() (t time.Time, exists bool) {
 				day = int(d)
 			}
 
+			// Date found
 			t = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 			exists = true
+			return
 		}
 	}
 
+	// No date found
 	return
 }
