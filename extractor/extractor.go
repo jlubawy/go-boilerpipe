@@ -25,7 +25,7 @@ func createLoggingDir(path string) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(path, 0664); err != nil {
+			if err := os.MkdirAll(path, 0664); err != nil {
 				panic(err)
 			}
 		} else {

@@ -61,7 +61,7 @@ func TestArticleExtractor(t *testing.T) {
 		// Process the HTML document
 		EnableLogging(filepath.Join("testresults", getFilename(htmlFilename)), false)
 		Article().Process(doc)
-		actualContent := doc.Content()
+		actStr := doc.Content()
 
 		expTimeStr, ok := expTimes[htmlFilename]
 		if !ok {
@@ -78,12 +78,15 @@ func TestArticleExtractor(t *testing.T) {
 		}
 
 		// Write output to test results file
-		if err := ioutil.WriteFile(filepath.Join("testresults", txtFilename), []byte(actualContent), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join("testresults", txtFilename), []byte(actStr), 0644); err != nil {
 			t.Error(err)
 		}
 
+		actStr = strings.Replace(actStr, "\r\n", "\n", -1)
+		expStr := strings.Replace(string(expText), "\r\n", "\n", -1)
+
 		// Compare to the expected
-		if actualContent != string(expText) {
+		if actStr != expStr {
 			t.Errorf("expected does not match actual")
 		}
 

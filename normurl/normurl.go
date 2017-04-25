@@ -179,18 +179,19 @@ func parseMonth(s string) (time.Month, bool) {
 	return m, exists
 }
 
+// Order of these regexps matters, since some grab all yyyy-mm-dd, while others only grab yyyy-mm
 var dateRegexps = []dateRegexp{
 	{
 		re: regexp.MustCompile(`\/([0-9]{4})\/([a-zA-Z]{3})\/([0-9]{2})[\/]*`), // scheme://host/path/2016/nov/16?query#fragment
 		i:  3,
 	},
 	{
-		re: regexp.MustCompile(`\/([0-9]{4})-([0-9]{2})[\/]*`), // scheme://host/path/2017-01?query#fragment
-		i:  2,
+		re: regexp.MustCompile(`\/([0-9]{4})-([0-9]{2})-([0-9]{2})`), // scheme://host/path/2016-12-15-title?query#fragment
+		i:  3,
 	},
 	{
-		re: regexp.MustCompile(`\/([0-9]{4})-([0-9]{2})-([0-9]{2})[\/]*`), // scheme://host/path/2016-12-15-title?query#fragment
-		i:  3,
+		re: regexp.MustCompile(`\/([0-9]{4})-([0-9]{2})[\/]*`), // scheme://host/path/2017-01?query#fragment
+		i:  2,
 	},
 }
 

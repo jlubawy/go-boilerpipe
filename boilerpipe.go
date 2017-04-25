@@ -143,18 +143,8 @@ type TextDocument struct {
 	Title      string
 	Time       time.Time
 	TextBlocks []*TextBlock
-}
 
-type TextDocumentError struct {
 	errs []error
-}
-
-func (e TextDocumentError) Error() string {
-	buf := &bytes.Buffer{}
-	for _, err := range e.errs {
-		fmt.Fprintln(buf, err.Error())
-	}
-	return buf.String()
 }
 
 func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
@@ -199,12 +189,6 @@ func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
 DONE:
 	h.FlushBlock()
 
-	if errs := h.Errors(); len(errs) > 0 {
-		err = TextDocumentError{
-			errs: errs,
-		}
-	}
-
 	// Set the rest of the document fields
 	doc.Title = h.title
 	if doc.Time.Equal(time.Time{}) {
@@ -212,7 +196,14 @@ DONE:
 	}
 	doc.TextBlocks = h.textBlocks
 
+	// Save any errors we might have encountered
+	doc.errs = h.Errors()
+
 	return
+}
+
+func (doc *TextDocument) Errors() []error {
+	return doc.errs
 }
 
 func (doc *TextDocument) Content() string {
@@ -233,12 +224,7 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 			}
 		}
 
-		if _, err := buf.WriteString(tb.Text); err != nil {
-			panic(err)
-		}
-		if _, err := buf.WriteRune('\n'); err != nil {
-			panic(err)
-		}
+		fmt.Fprintln(buf, tb.Text)
 	}
 
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
