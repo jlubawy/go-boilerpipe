@@ -16,8 +16,12 @@ var expTimes = map[string]string{
 	"1.html": "",
 }
 
-func replaceExtension(s string, ext string) string {
-	return s[:strings.LastIndex(s, ".")] + "." + ext
+func getFilename(p string) string {
+	return p[:strings.LastIndex(p, ".")]
+}
+
+func replaceExtension(p string, ext string) string {
+	return getFilename(p) + "." + ext
 }
 
 func TestArticleExtractor(t *testing.T) {
@@ -55,7 +59,7 @@ func TestArticleExtractor(t *testing.T) {
 		}
 
 		// Process the HTML document
-		EnableLogging("testresults", false)
+		EnableLogging(filepath.Join("testresults", getFilename(htmlFilename)), false)
 		Article().Process(doc)
 		actualContent := doc.Content()
 
