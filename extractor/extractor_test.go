@@ -11,6 +11,15 @@ import (
 	"github.com/jlubawy/go-boilerpipe"
 )
 
+var expTimes = map[string]string{
+	"0.html": "2013-11-15T00:00:00+00:00",
+	"1.html": "",
+}
+
+func replaceExtension(s string, ext string) string {
+	return s[:strings.LastIndex(s, ".")] + "." + ext
+}
+
 func TestArticleExtractor(t *testing.T) {
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
@@ -25,7 +34,7 @@ func TestArticleExtractor(t *testing.T) {
 
 		dir := filepath.Dir(path)
 		htmlFilename := filepath.Base(path)
-		txtFilename := htmlFilename[:strings.LastIndex(htmlFilename, ".")] + ".txt"
+		txtFilename := replaceExtension(htmlFilename, "txt")
 
 		// Open the input html document
 		f, err := os.Open(path)
@@ -50,9 +59,18 @@ func TestArticleExtractor(t *testing.T) {
 		Article().Process(doc)
 		actualContent := doc.Content()
 
-		expTime, _ := time.Parse(time.RFC3339, "2013-11-15T00:00:00+00:00")
-		if !doc.Time.Equal(expTime) {
-			t.Fail()
+		expTimeStr, ok := expTimes[htmlFilename]
+		if !ok {
+			t.Errorf("missing expected time for article '%s'", htmlFilename)
+		}
+
+		if expTimeStr != "" {
+			expTime, _ := time.Parse(time.RFC3339, expTimeStr)
+			if !doc.Time.Equal(expTime) {
+				t.Errorf("expected time %s does not match actual time %s", expTime, doc.Time)
+			}
+		} else {
+			t.Logf("Skipping time check for article '%s'", htmlFilename)
 		}
 
 		// Write output to test results file
