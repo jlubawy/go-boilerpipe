@@ -343,6 +343,13 @@ func (r *URLReader) Read(p []byte) (n int, err error) {
 	}
 	r.r = resp.Body
 
+	if resp.StatusCode >= 400 {
+		return 0, &URLReaderErr{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+		}
+	}
+
 	return r.r.Read(p)
 }
 
@@ -351,4 +358,13 @@ func (r *URLReader) Close() error {
 		return nil
 	}
 	return r.Close()
+}
+
+type URLReaderErr struct {
+	StatusCode int
+	Status     string
+}
+
+func (err *URLReaderErr) Error() string {
+	return err.Status
 }
