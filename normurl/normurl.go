@@ -9,7 +9,19 @@ import (
 	"time"
 )
 
+type NormalizeOptions struct {
+	KeepFragments bool
+}
+
+var defaultNormalizeOptions = NormalizeOptions{
+	KeepFragments: false,
+}
+
 func Normalize(u *url.URL) *URL {
+	return NormalizeWithOptions(u, &defaultNormalizeOptions)
+}
+
+func NormalizeWithOptions(u *url.URL, options *NormalizeOptions) *URL {
 	// Remove blacklisted query keys
 	values := u.Query()
 	for _, key := range DefaultQueryKeyBlacklist.Keys() {
@@ -17,8 +29,10 @@ func Normalize(u *url.URL) *URL {
 	}
 	u.RawQuery = values.Encode()
 
-	// Remove any fragments
-	u.Fragment = ""
+	if !options.KeepFragments {
+		// Remove any fragments
+		u.Fragment = ""
+	}
 
 	// Clean the path
 	u.Path = path.Clean(u.Path)
