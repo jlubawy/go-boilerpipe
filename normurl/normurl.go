@@ -89,18 +89,6 @@ func NewURL(u *url.URL) *URL {
 	}
 }
 
-func Equal(u1, u2 *URL) bool {
-	return u1.String() == u2.String()
-}
-
-//func IsChild(root, ref *URL) bool {
-//	if root.Hostname() != ref.Hostname() {
-//		return false
-//	}
-//
-//	return strings.HasPrefix(ref.gu.Path, root.gu.Path)
-//}
-
 func Parse(rawurl string) (*URL, error) {
 	gu, err := url.Parse(rawurl)
 	if err != nil {
@@ -121,17 +109,13 @@ func (u *URL) EscapedPath() string {
 	return u.gu.EscapedPath()
 }
 
-//func (u *URL) Hostname() string {
-//	return u.gu.Hostname()
-//}
+func (u1 *URL) Equal(u2 *URL) bool {
+	return u1.String() == u2.String()
+}
 
 func (u *URL) IsAbs() bool {
 	return u.gu.IsAbs()
 }
-
-//func (u *URL) MarshalBinary() (text []byte, err error) {
-//	return u.gu.MarshalBinary()
-//}
 
 func (u *URL) Parse(ref string) (*URL, error) {
 	gu, err := u.gu.Parse(ref)
@@ -140,10 +124,6 @@ func (u *URL) Parse(ref string) (*URL, error) {
 	}
 	return Normalize(gu), nil
 }
-
-//func (u *URL) Port() string {
-//	return u.gu.Port()
-//}
 
 func (u *URL) Query() url.Values {
 	return u.gu.Query()
@@ -161,9 +141,12 @@ func (u *URL) String() string {
 	return strings.ToLower(u.gu.String())
 }
 
-//func (u *URL) UnmarshalBinary(text []byte) error {
-//	return u.gu.UnmarshalBinary(text)
-//}
+func (u *URL) ValueSet(key, value string) *URL {
+	values := u.gu.Query()
+	values.Set(key, value)
+	u.gu.RawQuery = values.Encode()
+	return u
+}
 
 type ParseDateFunc func(u *URL) (t time.Time, exists bool)
 
