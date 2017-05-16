@@ -6,17 +6,20 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/http/cookiejar"
 	"os"
 
 	"github.com/jlubawy/go-boilerpipe"
 	"github.com/jlubawy/go-boilerpipe/extractor"
 	url "github.com/jlubawy/go-boilerpipe/normurl"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: boilerpipe [OPTIONS] <article URL>\n\n")
 	flag.PrintDefaults()
-	fmt.Fprintf(os.Stderr, "\nVersion: %s", boilerpipe.VERSION)
+	fmt.Fprintf(os.Stderr, "\nVersion: %s", boilerpipe.Version)
 	os.Exit(1)
 }
 
@@ -86,7 +89,16 @@ func process(rawurl string) (*boilerpipe.TextDocument, error) {
 		return nil, err
 	}
 
-	ur := boilerpipe.NewURLReader(http.DefaultClient, u)
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{
+		Jar: jar,
+	}
+
+	ur := boilerpipe.NewURLReader(client, u)
 
 	doc, err := boilerpipe.NewTextDocument(ur)
 	if err != nil {
@@ -115,9 +127,9 @@ func Index(w http.ResponseWriter, r *http.Request) (int, error) {
 	}
 
 	data := struct {
-		Version string
+		Version boilerpipe.BoilerpipeVersion
 	}{
-		Version: boilerpipe.VERSION,
+		Version: boilerpipe.Version,
 	}
 
 	if err := indexTempl.Execute(w, data); err != nil {
@@ -143,12 +155,12 @@ func Extract(w http.ResponseWriter, r *http.Request) (int, error) {
 	}
 
 	data := struct {
-		Version string
+		Version boilerpipe.BoilerpipeVersion
 		URL     string
 		Title   string
 		Content string
 	}{
-		Version: boilerpipe.VERSION,
+		Version: boilerpipe.Version,
 		URL:     url,
 		Title:   doc.Title,
 		Content: doc.Content(),

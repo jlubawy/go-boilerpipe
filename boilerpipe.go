@@ -16,7 +16,21 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-const VERSION = "0.0.6"
+type BoilerpipeVersion struct {
+	Major uint
+	Minor uint
+	Build uint
+}
+
+func (v BoilerpipeVersion) String() string {
+	return fmt.Sprintf("v%d.%d.%d", v.Major, v.Minor, v.Build)
+}
+
+var Version = BoilerpipeVersion{
+	Major: 0,
+	Minor: 0,
+	Build: 7,
+}
 
 type TextBlock struct {
 	Text string

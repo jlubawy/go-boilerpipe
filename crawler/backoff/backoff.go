@@ -13,9 +13,9 @@ const (
 	DefaultInitialInterval time.Duration = 500 * time.Millisecond
 	DefaultMaxInterval     time.Duration = 20 * time.Second
 	DefaultMultiplier      float64       = 1.5
-
-	DefaultUserAgent string = "go-boilerpipe/" + boilerpipe.VERSION
 )
+
+var DefaultUserAgent string = "go-boilerpipe/" + boilerpipe.Version.String()
 
 var ErrMaxRetries = errors.New("maximum retry limit has been reached")
 
