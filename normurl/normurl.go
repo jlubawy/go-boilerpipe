@@ -117,6 +117,18 @@ func (u *URL) IsAbs() bool {
 	return u.gu.IsAbs()
 }
 
+func IsChild(root, ref *URL) bool {
+	if root.Hostname() != ref.Hostname() {
+		return false
+	}
+
+	if !strings.HasPrefix(ref.gu.Path, root.gu.Path) {
+		return false
+	}
+
+	return !ref.Equal(root)
+}
+
 func (u *URL) Parse(ref string) (*URL, error) {
 	gu, err := u.gu.Parse(ref)
 	if err != nil {
