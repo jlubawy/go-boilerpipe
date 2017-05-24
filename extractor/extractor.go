@@ -96,7 +96,7 @@ func (e articleExtractor) Pipeline() []boilerpipe.Processor {
 		filter.BlockProximityFusionMaxDistanceOne,
 		filter.BoilerplateBlock(),
 		filter.BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
-		filter.KeepLargestBlock(),
+		filter.KeepLargestBlocks(),
 		filter.ExpandTitleToContent(),
 		filter.LargeBlockSameTagLevelToContent(),
 		filter.ListAtEnd(),

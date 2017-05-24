@@ -11,6 +11,8 @@ import (
 	"github.com/jlubawy/go-boilerpipe"
 )
 
+const resultsDir = "testresults"
+
 var expTimes = map[string]string{
 	"0.html": "2013-11-15T00:00:00+00:00",
 	"1.html": "",
@@ -25,6 +27,10 @@ func replaceExtension(p string, ext string) string {
 }
 
 func TestArticleExtractor(t *testing.T) {
+	if err := os.Mkdir(resultsDir, 0644); err != nil {
+		t.Fatal(err)
+	}
+
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil // skip directories
@@ -77,7 +83,7 @@ func TestArticleExtractor(t *testing.T) {
 		}
 
 		// Write output to test results file
-		if err := ioutil.WriteFile(filepath.Join("testresults", txtFilename), []byte(actStr), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(resultsDir, txtFilename), []byte(actStr), 0644); err != nil {
 			t.Error(err)
 		}
 

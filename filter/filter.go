@@ -354,32 +354,31 @@ func (p boilerplateBlock) Process(doc *boilerpipe.TextDocument) bool {
 	return hasChanged
 }
 
-func KeepLargestBlock() boilerpipe.Processor {
-	return keepLargestBlock{true, ExpandToSameTagLevelMinimumWords}
+func KeepLargestBlocks() boilerpipe.Processor {
+	return keepLargestBlocks{true, ExpandToSameTagLevelMinimumWords}
 }
 
-type keepLargestBlock struct {
+type keepLargestBlocks struct {
 	expandToSameLevelText bool
 	minWords              int
 }
 
-const (
-	ExpandToSameTagLevel             int = 0
-	ExpandToSameTagLevelMinimumWords int = 150
-)
+const ExpandToSameTagLevelMinimumWords = 150
 
-func (keepLargestBlock) Name() string { return "KeepLargestBlock" }
+func (keepLargestBlocks) Name() string { return "KeepLargestBlocks" }
 
-func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
+func (p keepLargestBlocks) Process(doc *boilerpipe.TextDocument) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
 
-	maxNumWords := -1
-	var largestBlock *boilerpipe.TextBlock
-	level := -1
-	j := 0
-	n := -1
+	var (
+		maxNumWords  = -1
+		largestBlock *boilerpipe.TextBlock
+		level        = -1
+		j            = 0
+		n            = -1
+	)
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
@@ -390,7 +389,6 @@ func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
 			if nw > maxNumWords {
 				largestBlock = tb
 				maxNumWords = nw
-
 				n = j
 
 				if p.expandToSameLevelText {
@@ -409,13 +407,13 @@ func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
 			tb.IsContent = true
 			tb.AddLabel(boilerpipe.LabelVeryLikelyContent)
 		} else {
-			tb.IsContent = false
+			tb.IsContent = isLargestBlock(maxNumWords, tb)
 			tb.AddLabel(boilerpipe.LabelMightBeContent)
 		}
 	}
 
 	if p.expandToSameLevelText && n != -1 {
-
+		// Expand to blocks below the largest
 		for i := len(doc.TextBlocks) - 1; i >= 0; i-- {
 			tb := doc.TextBlocks[i]
 
@@ -429,6 +427,7 @@ func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
 			}
 		}
 
+		// Expand to blocks above the largest
 		for i := range doc.TextBlocks {
 			tb := doc.TextBlocks[i]
 
@@ -444,6 +443,20 @@ func (p keepLargestBlock) Process(doc *boilerpipe.TextDocument) bool {
 	}
 
 	return true
+}
+
+func isLargestBlock(maxNumWords int, tb *boilerpipe.TextBlock) bool {
+	var minWordPercent float64
+	switch {
+	case maxNumWords >= 1000:
+		minWordPercent = 0.25
+	case maxNumWords >= 500:
+		minWordPercent = 0.6
+	default:
+		return tb.IsContent && tb.NumWords == maxNumWords
+	}
+
+	return tb.IsContent && tb.NumWords >= int(minWordPercent*float64(maxNumWords))
 }
 
 func KeepLargestFulltextBlock() boilerpipe.Processor { return keepLargestFulltextBlock{} }
