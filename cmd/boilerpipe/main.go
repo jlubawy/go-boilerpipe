@@ -26,6 +26,7 @@ var commands = map[string]*Command{
 	"crawl":   commandCrawl,
 	"extract": commandExtract,
 	"serve":   commandServe,
+	"version": commandVersion,
 }
 
 var templUsage = template.Must(template.New("").Parse(`Boilerpipe removes boilerplate and extracts text content from HTML documents.
@@ -70,9 +71,6 @@ func main() {
 
 		usage()
 
-	} else if cmdStr == "version" {
-		fmt.Fprintf(os.Stderr, "boilerpipe %s %s/%s\n", boilerpipe.Version, runtime.GOOS, runtime.GOARCH)
-
 	} else {
 		command, exists := commands[cmdStr]
 		if exists {
@@ -83,61 +81,22 @@ Run 'boilerpipe help' for usage.
 `, cmdStr)
 		}
 	}
-
-	//	if *debug {
-	//		extractor.EnableLogging(".", true)
-	//	}
-	//
-	//	if *file != "" {
-	//		// If a file path was provided then read from the file
-	//		f, err := os.Open(*file)
-	//		if err != nil {
-	//			fmt.Fprintln(os.Stderr, err)
-	//			os.Exit(1)
-	//		}
-	//		defer f.Close()
-	//
-	//		text, err := boilerpipe.ExtractText(f)
-	//		if err != nil {
-	//			fmt.Fprintln(os.Stderr, err)
-	//			os.Exit(1)
-	//		}
-	//
-	//		fmt.Print(text)
-	//
-	//	} else if *port == "" {
-	//		// Else if no port is provided take a URL from the command line and output the
-	//		// results to stdout.
-	//
-	//		url := flag.Arg(0)
-	//		if url == "" {
-	//			fmt.Fprintln(os.Stderr, "Must specify url.\n")
-	//			flag.Usage()
-	//		}
-	//
-	//		doc, err := process(url)
-	//		if err != nil {
-	//			fmt.Fprintln(os.Stderr, err)
-	//			os.Exit(1)
-	//		}
-	//
-	//		fmt.Print(doc.Content())
-	//
-	//	} else {
-	//		// Else if a port is provided start the HTTP server
-	//
-	//		http.HandleFunc("/", Handle(Index))
-	//		http.HandleFunc("/extract", Handle(Extract))
-	//
-	//		fmt.Fprintln(os.Stderr, "Starting server on port", *port)
-	//		if err := http.ListenAndServe(*port, nil); err != nil {
-	//			fmt.Fprintln(os.Stderr, err.Error())
-	//			os.Exit(1)
-	//		}
-	//	}
 }
 
 func fatalf(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
+}
+
+var commandVersion = &Command{
+	Description: "print boilerpipe version",
+	CommandFunc: func(args []string) {
+		fmt.Fprintf(os.Stderr, "boilerpipe %s %s/%s\n", boilerpipe.Version, runtime.GOOS, runtime.GOARCH)
+	},
+	HelpFunc: func() {
+		fmt.Fprintf(os.Stderr, `usage: boilerpipe version
+
+Version prints the boilerpipe version, as reported by boilerpipe.Version.
+`)
+	},
 }
