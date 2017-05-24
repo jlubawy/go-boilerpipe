@@ -1,98 +1,89 @@
 package extractor
 
 import (
-	"io/ioutil"
+	"bytes"
+	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/jlubawy/go-boilerpipe"
 )
 
-const resultsDir = "testresults"
-
-var expTimes = map[string]string{
-	"0.html": "2013-11-15T00:00:00+00:00",
-	"1.html": "",
-}
-
-func getFilename(p string) string {
-	return p[:strings.LastIndex(p, ".")]
-}
-
-func replaceExtension(p string, ext string) string {
-	return getFilename(p) + "." + ext
+type extractJSON struct {
+	Document []byte `json:"document"`
+	URL      string `json:"url"`
+	Results  struct {
+		Title   string `json:"title"`
+		URL     string `json:"url"`
+		Date    string `json:"date"`
+		Content string `json:"content"`
+	} `json:"results"`
 }
 
 func TestArticleExtractor(t *testing.T) {
-	if err := os.Mkdir(resultsDir, 0644); err != nil {
-		t.Fatal(err)
-	}
-
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil // skip directories
 		}
 
-		if filepath.Ext(path) != ".html" {
+		if filepath.Ext(path) != ".json" {
+			t.Logf("Skipping file '%s'", path)
 			return nil // skip non-html files
 		}
 
-		t.Logf("Opening test file: '%s'", path)
+		t.Logf("Testing file: '%s'", path)
 
-		dir := filepath.Dir(path)
-		htmlFilename := filepath.Base(path)
-		txtFilename := replaceExtension(htmlFilename, "txt")
-
-		// Open the input html document
 		f, err := os.Open(path)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		defer f.Close()
 
-		// Open and read the expected article text
-		expText, err := ioutil.ReadFile(filepath.Join(dir, txtFilename))
-		if err != nil {
-			t.Error(err)
+		var testData extractJSON
+
+		if err := json.NewDecoder(f).Decode(&testData); err != nil {
+			t.Fatal(err)
 		}
 
-		doc, err := boilerpipe.NewTextDocument(f, nil)
+		u, err := url.Parse(testData.URL)
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 
-		// Process the HTML document
+		doc, err := boilerpipe.NewTextDocument(bytes.NewReader(testData.Document), u)
+		if err != nil {
+			t.Fatal(err)
+		}
 		Article().Process(doc)
-		actStr := doc.Content()
 
-		expTimeStr, ok := expTimes[htmlFilename]
-		if !ok {
-			t.Errorf("missing expected time for article '%s'", htmlFilename)
+		expected := testData.Results
+
+		if doc.Title != expected.Title {
+			errorf(t, "Title", doc.Title, expected.Title)
 		}
 
-		if expTimeStr != "" {
-			expTime, _ := time.Parse(time.RFC3339, expTimeStr)
-			if !doc.Date.Equal(expTime) {
-				t.Errorf("expected time %s does not match actual time %s", expTime, doc.Date)
+		if doc.URL.String() != expected.URL {
+			errorf(t, "URL", doc.URL, expected.URL)
+		}
+
+		if expected.Date != "" {
+			expDate, err := time.Parse(time.RFC3339, expected.Date)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !doc.Date.Equal(expDate) {
+				errorf(t, "Date", doc.Date, expDate)
 			}
 		} else {
-			t.Logf("Skipping time check for article '%s'", htmlFilename)
+			t.Logf("Skipping Date check...")
 		}
 
-		// Write output to test results file
-		if err := ioutil.WriteFile(filepath.Join(resultsDir, txtFilename), []byte(actStr), 0644); err != nil {
-			t.Error(err)
-		}
-
-		actStr = strings.Replace(actStr, "\r\n", "\n", -1)
-		expStr := strings.Replace(string(expText), "\r\n", "\n", -1)
-
-		// Compare to the expected
-		if actStr != expStr {
-			t.Errorf("expected does not match actual")
+		if doc.Content() != expected.Content {
+			t.Errorf("Content mismatch")
 		}
 
 		return nil
@@ -101,4 +92,8 @@ func TestArticleExtractor(t *testing.T) {
 	if err := filepath.Walk("testdata", walkFn); err != nil {
 		t.Error(err)
 	}
+}
+
+func errorf(t *testing.T, name string, act, exp interface{}) {
+	t.Errorf("%s mismatch (act=%s, exp=%s)", name, act, exp)
 }
