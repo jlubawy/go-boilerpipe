@@ -133,6 +133,7 @@ stdout.
 If no argument is provided the document is read from stdin, else the argument is
 parsed first as a URL and then a filename.
 
-If -test=true a JSON document is output for the purposes of use by extractor_test.go.
+If -test=true a JSON document is output for the purpose of being used by extractor_test.go.
+A URL should be provided as the input document so that a date can be extracted if possible.
 `)
 }
