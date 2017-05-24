@@ -39,6 +39,7 @@ The commands are:
 {{range $name, $command := .}}
        {{printf "%-7s    %s" $name $command.Description}}{{end}}
 
+Use "boilerpipe help [command]" for more information about a command.
 `))
 
 func usage() {
