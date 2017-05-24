@@ -271,12 +271,12 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 	sameTagLevelOnly := p.sameTagLevelOnly
 
 	var prevBlock *boilerpipe.TextBlock
-	offset := 0
+	startBlock := 0
 
 	if contentOnly {
 		for i := range doc.TextBlocks {
 			tb := doc.TextBlocks[i]
-			offset++
+			startBlock++
 
 			if tb.IsContent {
 				prevBlock = tb
@@ -289,10 +289,10 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 		}
 	} else {
 		prevBlock = doc.TextBlocks[0]
-		offset = 1
+		startBlock = 1
 	}
 
-	for i := offset; i < len(doc.TextBlocks); i++ {
+	for i := startBlock; i < len(doc.TextBlocks); i++ {
 		tb := doc.TextBlocks[i]
 
 		if tb.IsContent == false {
@@ -302,18 +302,18 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool 
 
 		diffBlocks := tb.OffsetBlocksStart - tb.OffsetBlocksEnd - 1
 		if diffBlocks <= maxBlocksDistance {
-			ok := true
+			merge := true
 			if contentOnly {
 				if prevBlock.IsContent == false || tb.IsContent == false {
-					ok = false
+					merge = false
 				}
 			}
 
-			if ok && sameTagLevelOnly && prevBlock.TagLevel != tb.TagLevel {
-				ok = false
+			if merge && sameTagLevelOnly && prevBlock.TagLevel != tb.TagLevel {
+				merge = false
 			}
 
-			if ok {
+			if merge {
 				prevBlock.MergeNext(tb)
 
 				// Remove merged text block
