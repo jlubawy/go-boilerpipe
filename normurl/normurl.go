@@ -17,27 +17,9 @@ var defaultNormalizeOptions = NormalizeOptions{
 	KeepFragments: false,
 }
 
-func Normalize(u *url.URL) *URL {
-	return NormalizeWithOptions(u, &defaultNormalizeOptions)
-}
-
-func NormalizeWithOptions(u *url.URL, options *NormalizeOptions) *URL {
-	// Remove blacklisted query keys
-	values := u.Query()
-	for _, key := range DefaultQueryKeyBlacklist.Keys() {
-		values.Del(key)
-	}
-	u.RawQuery = values.Encode()
-
-	if !options.KeepFragments {
-		// Remove any fragments
-		u.Fragment = ""
-	}
-
-	// Clean the path
-	u.Path = path.Clean(u.Path)
-
-	return NewURL(u)
+func Normalize(u *url.URL) *url.URL {
+	nu := NewURL(u, &defaultNormalizeOptions)
+	return nu.gu
 }
 
 type QueryKeyBlacklist struct {
@@ -83,7 +65,26 @@ type URL struct {
 	gu *url.URL
 }
 
-func NewURL(u *url.URL) *URL {
+func NewURL(u *url.URL, options *NormalizeOptions) *URL {
+	if options == nil {
+		options = &defaultNormalizeOptions
+	}
+
+	// Remove blacklisted query keys
+	values := u.Query()
+	for _, key := range DefaultQueryKeyBlacklist.Keys() {
+		values.Del(key)
+	}
+	u.RawQuery = values.Encode()
+
+	if !options.KeepFragments {
+		// Remove any fragments
+		u.Fragment = ""
+	}
+
+	// Clean the path
+	u.Path = path.Clean(u.Path)
+
 	return &URL{
 		gu: u,
 	}
@@ -94,7 +95,7 @@ func Parse(rawurl string) (*URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Normalize(gu), nil
+	return NewURL(gu, nil), nil
 }
 
 func ParseRequestURI(rawurl string) (*URL, error) {
@@ -102,7 +103,7 @@ func ParseRequestURI(rawurl string) (*URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Normalize(gu), nil
+	return NewURL(gu, nil), nil
 }
 
 func (u *URL) EscapedPath() string {
@@ -134,7 +135,7 @@ func (u *URL) Parse(ref string) (*URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Normalize(gu), nil
+	return NewURL(gu, nil), nil
 }
 
 func (u *URL) Query() url.Values {
@@ -146,7 +147,7 @@ func (u *URL) RequestURI() string {
 }
 
 func (u *URL) ResolveReference(ref *URL) *URL {
-	return Normalize(u.gu.ResolveReference(ref.gu))
+	return NewURL(u.gu.ResolveReference(ref.gu), nil)
 }
 
 func (u *URL) String() string {

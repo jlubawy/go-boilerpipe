@@ -2,15 +2,17 @@ package boilerpipe
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
-	url "github.com/jlubawy/go-boilerpipe/normurl"
+	"github.com/jlubawy/go-boilerpipe/normurl"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -155,22 +157,25 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 
 type TextDocument struct {
 	Title      string
-	Time       time.Time
+	URL        *normurl.URL
+	Date       time.Time
 	TextBlocks []*TextBlock
 
 	errs []error
 }
 
-func NewTextDocument(r io.Reader) (doc *TextDocument, err error) {
+func NewTextDocument(r io.Reader, u *url.URL) (doc *TextDocument, err error) {
 	z := html.NewTokenizer(r)
 
 	h := NewContentHandler()
 
 	doc = &TextDocument{}
 
-	if v, ok := r.(*URLReader); ok {
-		if d, exists := v.URL().Date(); exists {
-			doc.Time = d
+	if u != nil {
+		doc.URL = normurl.NewURL(u, nil)
+
+		if d, exists := doc.URL.Date(); exists {
+			doc.Date = d
 		}
 	}
 
@@ -205,8 +210,8 @@ DONE:
 
 	// Set the rest of the document fields
 	doc.Title = h.title
-	if doc.Time.Equal(time.Time{}) {
-		doc.Time = h.time
+	if doc.Date.Equal(time.Time{}) {
+		doc.Date = h.time
 	}
 	doc.TextBlocks = h.textBlocks
 
@@ -242,6 +247,26 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 	}
 
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
+}
+
+func (doc *TextDocument) MarshalJSON() ([]byte, error) {
+	m := make(map[string]interface{})
+
+	m["title"] = doc.Title
+
+	if doc.URL != nil {
+		m["url"] = doc.URL.String()
+	}
+
+	if doc.Date.Equal(time.Time{}) {
+		m["date"] = ""
+	} else {
+		m["date"] = doc.Date
+	}
+
+	m["content"] = doc.Content()
+
+	return json.Marshal(m)
 }
 
 type Processor interface {

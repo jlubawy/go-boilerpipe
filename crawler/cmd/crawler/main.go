@@ -27,7 +27,7 @@ func main() {
 		fatalln(err)
 	}
 
-	normRoot := normurl.NewURL(root)
+	normRoot := normurl.NewURL(root, nil)
 	c := crawler.NewCrawler(1, 11)
 
 	pageFunc := func(u *url.URL, page uint) *url.URL {

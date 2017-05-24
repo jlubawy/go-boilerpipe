@@ -53,13 +53,12 @@ func TestArticleExtractor(t *testing.T) {
 			t.Error(err)
 		}
 
-		doc, err := boilerpipe.NewTextDocument(f)
+		doc, err := boilerpipe.NewTextDocument(f, nil)
 		if err != nil {
 			t.Error(err)
 		}
 
 		// Process the HTML document
-		EnableLogging(filepath.Join("testresults", getFilename(htmlFilename)), false)
 		Article().Process(doc)
 		actStr := doc.Content()
 
@@ -70,8 +69,8 @@ func TestArticleExtractor(t *testing.T) {
 
 		if expTimeStr != "" {
 			expTime, _ := time.Parse(time.RFC3339, expTimeStr)
-			if !doc.Time.Equal(expTime) {
-				t.Errorf("expected time %s does not match actual time %s", expTime, doc.Time)
+			if !doc.Date.Equal(expTime) {
+				t.Errorf("expected time %s does not match actual time %s", expTime, doc.Date)
 			}
 		} else {
 			t.Logf("Skipping time check for article '%s'", htmlFilename)

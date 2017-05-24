@@ -1,236 +1,143 @@
 package main
 
 import (
-	"errors"
-	"flag"
+	//"errors"
 	"fmt"
-	"html/template"
-	"net/http"
-	"net/http/cookiejar"
+	"runtime"
+	"text/template"
+	//"net/http"
+	//"net/http/cookiejar"
 	"os"
-
+	//
 	"github.com/jlubawy/go-boilerpipe"
-	"github.com/jlubawy/go-boilerpipe/extractor"
-	url "github.com/jlubawy/go-boilerpipe/normurl"
-
-	"golang.org/x/net/publicsuffix"
+	//"github.com/jlubawy/go-boilerpipe/extractor"
+	//url "github.com/jlubawy/go-boilerpipe/normurl"
+	//
+	//"golang.org/x/net/publicsuffix"
 )
 
+type Command struct {
+	Description string
+	CommandFunc func(args []string)
+	HelpFunc    func()
+}
+
+var commands = map[string]*Command{
+	"crawl":   commandCrawl,
+	"extract": commandExtract,
+	"serve":   commandServe,
+}
+
+var templUsage = template.Must(template.New("").Parse(`Boilerpipe removes boilerplate and extracts text content from HTML documents.
+
+Usage:
+
+       boilerpipe command [arguments]
+
+The commands are:
+{{range $name, $command := .}}
+       {{printf "%-7s    %s" $name $command.Description}}{{end}}
+
+`))
+
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: boilerpipe [OPTIONS] <article URL>\n\n")
-	flag.PrintDefaults()
-	fmt.Fprintf(os.Stderr, "\nVersion: %s", boilerpipe.Version)
+	if err := templUsage.Execute(os.Stderr, &commands); err != nil {
+		panic(err)
+	}
 	os.Exit(1)
 }
 
 func main() {
-	flag.Usage = usage
-	file := flag.String("file", "", "extract content from a file")
-	port := flag.String("http", "", "start an HTTP server on the port specified if any (e.g. ':8080')")
-	debug := flag.Bool("debug", false, "enable debug logging in the current directory")
-	flag.Parse()
+	args := os.Args[1:]
 
-	if *debug {
-		extractor.EnableLogging(".", true)
+	if len(args) == 0 {
+		usage()
 	}
 
-	if *file != "" {
-		// If a file path was provided then read from the file
-		f, err := os.Open(*file)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		defer f.Close()
-
-		text, err := boilerpipe.ExtractText(f)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-
-		fmt.Print(text)
-
-	} else if *port == "" {
-		// Else if no port is provided take a URL from the command line and output the
-		// results to stdout.
-
-		url := flag.Arg(0)
-		if url == "" {
-			fmt.Fprintln(os.Stderr, "Must specify url.\n")
-			flag.Usage()
+	cmdStr := args[0]
+	if cmdStr == "help" || cmdStr == "-help" || cmdStr == "--help" || cmdStr == "-h" {
+		if cmdStr == "help" {
+			// Check if sub-command help
+			if len(args) > 2 {
+				fatalf("usage: boilerpipe help command\n\nToo many arguments given.\n")
+			} else if len(args) == 2 {
+				if command, exists := commands[args[1]]; exists {
+					command.HelpFunc()
+					os.Exit(1)
+				}
+			}
 		}
 
-		doc, err := process(url)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
+		usage()
 
-		fmt.Print(doc.Content())
+	} else if cmdStr == "version" {
+		fmt.Fprintf(os.Stderr, "boilerpipe %s %s/%s\n", boilerpipe.Version, runtime.GOOS, runtime.GOARCH)
 
 	} else {
-		// Else if a port is provided start the HTTP server
-
-		http.HandleFunc("/", Handle(Index))
-		http.HandleFunc("/extract", Handle(Extract))
-
-		fmt.Fprintln(os.Stderr, "Starting server on port", *port)
-		if err := http.ListenAndServe(*port, nil); err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
+		command, exists := commands[cmdStr]
+		if exists {
+			command.CommandFunc(args[1:])
+		} else {
+			fmt.Fprint(os.Stderr, `boilerpipe: unknown subcommand "%s"
+Run 'boilerpipe help' for usage.
+`, cmdStr)
 		}
 	}
+
+	//	if *debug {
+	//		extractor.EnableLogging(".", true)
+	//	}
+	//
+	//	if *file != "" {
+	//		// If a file path was provided then read from the file
+	//		f, err := os.Open(*file)
+	//		if err != nil {
+	//			fmt.Fprintln(os.Stderr, err)
+	//			os.Exit(1)
+	//		}
+	//		defer f.Close()
+	//
+	//		text, err := boilerpipe.ExtractText(f)
+	//		if err != nil {
+	//			fmt.Fprintln(os.Stderr, err)
+	//			os.Exit(1)
+	//		}
+	//
+	//		fmt.Print(text)
+	//
+	//	} else if *port == "" {
+	//		// Else if no port is provided take a URL from the command line and output the
+	//		// results to stdout.
+	//
+	//		url := flag.Arg(0)
+	//		if url == "" {
+	//			fmt.Fprintln(os.Stderr, "Must specify url.\n")
+	//			flag.Usage()
+	//		}
+	//
+	//		doc, err := process(url)
+	//		if err != nil {
+	//			fmt.Fprintln(os.Stderr, err)
+	//			os.Exit(1)
+	//		}
+	//
+	//		fmt.Print(doc.Content())
+	//
+	//	} else {
+	//		// Else if a port is provided start the HTTP server
+	//
+	//		http.HandleFunc("/", Handle(Index))
+	//		http.HandleFunc("/extract", Handle(Extract))
+	//
+	//		fmt.Fprintln(os.Stderr, "Starting server on port", *port)
+	//		if err := http.ListenAndServe(*port, nil); err != nil {
+	//			fmt.Fprintln(os.Stderr, err.Error())
+	//			os.Exit(1)
+	//		}
+	//	}
 }
 
-func process(rawurl string) (*boilerpipe.TextDocument, error) {
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		return nil, err
-	}
-
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return nil, err
-	}
-
-	client := &http.Client{
-		Jar: jar,
-	}
-
-	ur := boilerpipe.NewURLReader(client, u)
-
-	doc, err := boilerpipe.NewTextDocument(ur)
-	if err != nil {
-		return nil, err
-	}
-
-	extractor.Article().Process(doc)
-
-	return doc, nil
+func fatalf(fmtStr string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, fmtStr, args...)
+	os.Exit(1)
 }
-
-func Handle(handler func(w http.ResponseWriter, r *http.Request) (int, error)) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		code, err := handler(w, r)
-		if err != nil {
-			http.Error(w, err.Error(), code)
-		}
-	}
-}
-
-var ErrMethodNotSupported = errors.New("Method not supported")
-
-func Index(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method != "GET" {
-		return http.StatusMethodNotAllowed, ErrMethodNotSupported
-	}
-
-	data := struct {
-		Version boilerpipe.BoilerpipeVersion
-	}{
-		Version: boilerpipe.Version,
-	}
-
-	if err := indexTempl.Execute(w, data); err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	return http.StatusOK, nil
-}
-
-func Extract(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method != "GET" {
-		return http.StatusMethodNotAllowed, ErrMethodNotSupported
-	}
-
-	url := r.FormValue("url")
-	if url == "" {
-		return http.StatusBadRequest, errors.New("Must specify url.")
-	}
-
-	doc, err := process(url)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	data := struct {
-		Version boilerpipe.BoilerpipeVersion
-		URL     string
-		Title   string
-		Content string
-	}{
-		Version: boilerpipe.Version,
-		URL:     url,
-		Title:   doc.Title,
-		Content: doc.Content(),
-	}
-
-	if err := extractTempl.Execute(w, data); err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	return http.StatusOK, nil
-}
-
-var indexTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
-<html>
-    <head>
-        <title>Boilerpipe {{.Version}}</title>
-
-        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-    </head>
-    <body>
-    	<div class="container">
-    		<div class="row">
-    			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-				    <nav class="navbar navbar-default">
-					    <div class="container-fluid">
-					        <div class="navbar-header">
-					            <a class="navbar-brand" href="#">Boilerpipe {{.Version}}</a>
-					        </div>
-					    </div>
-					</nav>
-			    	<form method="GET" action="extract" target="_blank">
-						<div class="form-group">
-							<label for="txtUrl">Article URL</label>
-							<input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
-						</div>
-						<button type="submit" class="btn btn-default">Submit</button>
-			    	</form>
-		    	</div>
-	    	</div>
-    	</div>
-    </body>
-</html>`))
-
-var extractTempl = template.Must(template.New("").Parse(`<!DOCTYPE html>
-<html>
-    <head>
-        <title>Boilerpipe {{.Version}} | {{.Title}}</title>
-
-        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-    </head>
-    <body>
-    	<div class="container">
-    		<div class="row">
-    			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-				    <nav class="navbar navbar-default">
-					    <div class="container-fluid">
-					        <div class="navbar-header">
-					            <a class="navbar-brand" href="#">Boilerpipe {{.Version}}</a>
-					        </div>
-					    </div>
-					</nav>
-				</div>
-			</div>
-    		<div class="row">
-    			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-		    		<h1>{{.Title}}</h1>
-		    		<h2>{{.URL}}</h2>
-					<p>{{.Content}}</p>
-				</div>
-			</div>
-    	</div>
-    </body>
-</html>`))
