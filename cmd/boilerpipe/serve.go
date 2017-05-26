@@ -48,6 +48,7 @@ func serveHelpFunc() {
 
 Serve starts an HTTP server listening on the provided port.
 `)
+	os.Exit(1)
 }
 
 func runHandler(handler func(w http.ResponseWriter, r *http.Request) (int, error)) func(w http.ResponseWriter, r *http.Request) {

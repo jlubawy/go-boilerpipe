@@ -136,4 +136,5 @@ parsed first as a URL and then a filename.
 If -test=true a JSON document is output for the purpose of being used by extractor_test.go.
 A URL should be provided as the input document so that a date can be extracted if possible.
 `)
+	os.Exit(1)
 }
