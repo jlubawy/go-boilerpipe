@@ -138,6 +138,10 @@ func (u *URL) Parse(ref string) (*URL, error) {
 	return NewURL(gu, nil), nil
 }
 
+func (u *URL) Path() string {
+	return u.gu.Path
+}
+
 func (u *URL) Query() url.Values {
 	return u.gu.Query()
 }
@@ -148,6 +152,10 @@ func (u *URL) RequestURI() string {
 
 func (u *URL) ResolveReference(ref *URL) *URL {
 	return NewURL(u.gu.ResolveReference(ref.gu), nil)
+}
+
+func (u *URL) Scheme() string {
+	return u.gu.Scheme
 }
 
 func (u *URL) String() string {
