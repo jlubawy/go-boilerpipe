@@ -31,7 +31,7 @@ func (v BoilerpipeVersion) String() string {
 var Version = BoilerpipeVersion{
 	Major: 0,
 	Minor: 1,
-	Build: 0,
+	Build: 1,
 }
 
 type TextBlock struct {

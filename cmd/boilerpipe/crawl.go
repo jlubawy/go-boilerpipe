@@ -78,9 +78,10 @@ func crawlFunc(args []string) {
 }
 
 func crawlHelpFunc() {
-	fmt.Fprint(os.Stderr, `usage: boilerpipe crawl [url]
+	fmt.Fprint(os.Stderr, `usage: boilerpipe crawl [-start=1] [-last=0] url
 
-Crawl crawls the URL provided and prints the results to stdout.
+Crawl crawls the URL provided and prints the results to stdout. Start specifies
+the page to start on, last specifies the page to stop crawling on (inclusive).
 `)
 	os.Exit(1)
 }
