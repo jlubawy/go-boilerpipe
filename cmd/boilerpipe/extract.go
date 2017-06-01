@@ -7,15 +7,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"os"
 
 	"github.com/jlubawy/go-boilerpipe"
 	"github.com/jlubawy/go-boilerpipe/extractor"
-
-	"golang.org/x/net/publicsuffix"
 )
 
 var flagTest bool
@@ -61,16 +57,7 @@ func extractFunc(args []string) {
 }
 
 func httpExtract(u *url.URL, fn func(io.Reader, error)) {
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		fn(nil, err)
-		return
-	}
-
-	client := &http.Client{
-		Jar: jar,
-	}
-
+	client := NewClient()
 	resp, err := client.Get(u.String())
 	if err != nil {
 		fn(nil, err)

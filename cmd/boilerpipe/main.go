@@ -1,19 +1,16 @@
 package main
 
 import (
-	//"errors"
 	"fmt"
+	"net/http"
+	"net/http/cookiejar"
+	"os"
 	"runtime"
 	"text/template"
-	//"net/http"
-	//"net/http/cookiejar"
-	"os"
-	//
+
 	"github.com/jlubawy/go-boilerpipe"
-	//"github.com/jlubawy/go-boilerpipe/extractor"
-	//url "github.com/jlubawy/go-boilerpipe/normurl"
-	//
-	//"golang.org/x/net/publicsuffix"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 type Command struct {
@@ -100,4 +97,15 @@ var commandVersion = &Command{
 Version prints the boilerpipe version, as reported by boilerpipe.Version.
 `)
 	},
+}
+
+func NewClient() *http.Client {
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		fatalf("error: %s\n", err)
+	}
+
+	return &http.Client{
+		Jar: jar,
+	}
 }
