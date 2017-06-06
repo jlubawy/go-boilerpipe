@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
-	"runtime"
 	"text/template"
 
 	"github.com/jlubawy/go-boilerpipe"
@@ -89,7 +88,7 @@ func fatalf(fmtStr string, args ...interface{}) {
 var commandVersion = &Command{
 	Description: "print boilerpipe version",
 	CommandFunc: func(args []string) {
-		fmt.Fprintf(os.Stderr, "boilerpipe %s %s/%s\n", boilerpipe.Version, runtime.GOOS, runtime.GOARCH)
+		fmt.Fprintln(os.Stderr, boilerpipe.FullVersion)
 	},
 	HelpFunc: func() {
 		fmt.Fprintf(os.Stderr, `usage: boilerpipe version

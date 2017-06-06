@@ -56,7 +56,7 @@ func runHandler(handler func(w http.ResponseWriter, r *http.Request) (int, error
 		code, err := handler(w, r)
 		if err != nil {
 			var data = struct {
-				Version boilerpipe.BoilerpipeVersion
+				Version string
 				Status  string
 				Error   error
 			}{
@@ -95,7 +95,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 	}
 
 	data := struct {
-		Version boilerpipe.BoilerpipeVersion
+		Version string
 	}{
 		Version: boilerpipe.Version,
 	}
@@ -150,7 +150,7 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 		extractor.Article().Process(doc)
 
 		data := struct {
-			Version     boilerpipe.BoilerpipeVersion
+			Version     string
 			Doc         *boilerpipe.TextDocument
 			RawURL      string
 			Date        string
