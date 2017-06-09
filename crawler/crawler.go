@@ -112,7 +112,7 @@ func (c *Crawler) Crawl(ctx context.Context, rootURL string, startPage uint) (ch
 							if newCtx.Err() != nil {
 								return
 							}
-							if err == backoff.ErrPermanentHTTP || err == backoff.ErrRetriesExhausted {
+							if backoff.IsResponseError(err) || err == backoff.ErrRetriesExhausted {
 								if doneFunc(resp) {
 									return
 								}

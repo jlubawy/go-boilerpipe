@@ -145,7 +145,8 @@ type TextDocument struct {
 	Date       time.Time
 	TextBlocks []*TextBlock
 
-	errs []error
+	ContentType string
+	errs        []error
 }
 
 func NewTextDocument(r io.Reader, u *url.URL) (doc *TextDocument, err error) {
@@ -213,6 +214,28 @@ func (doc *TextDocument) Content() string {
 	return doc.Text(true, false)
 }
 
+func (doc *TextDocument) HTML() string {
+	buf := &bytes.Buffer{}
+
+	startP := true
+	data := []byte(doc.Content())
+	for i := int64(0); i < int64(len(data)); i++ {
+		if startP {
+			buf.WriteString("<p>")
+			startP = false
+		}
+
+		if data[i] == '\n' {
+			buf.WriteString("</p>")
+			startP = true
+		} else {
+			buf.WriteByte(data[i])
+		}
+	}
+
+	return buf.String()
+}
+
 func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 	buf := &bytes.Buffer{}
 
@@ -248,7 +271,11 @@ func (doc *TextDocument) MarshalJSON() ([]byte, error) {
 		m["date"] = doc.Date
 	}
 
-	m["content"] = doc.Content()
+	if doc.ContentType == "html" {
+		m["content"] = doc.HTML()
+	} else {
+		m["content"] = doc.Content()
+	}
 
 	return json.Marshal(m)
 }

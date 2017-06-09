@@ -10,10 +10,12 @@ import (
 )
 
 type NormalizeOptions struct {
+	KeepQuery     bool
 	KeepFragments bool
 }
 
 var defaultNormalizeOptions = NormalizeOptions{
+	KeepQuery:     false,
 	KeepFragments: false,
 }
 
@@ -70,12 +72,16 @@ func NewURL(u *url.URL, options *NormalizeOptions) *URL {
 		options = &defaultNormalizeOptions
 	}
 
-	// Remove blacklisted query keys
-	values := u.Query()
-	for _, key := range DefaultQueryKeyBlacklist.Keys() {
-		values.Del(key)
+	if !options.KeepQuery {
+		u.RawQuery = ""
+	} else {
+		// Remove blacklisted query keys
+		values := u.Query()
+		for _, key := range DefaultQueryKeyBlacklist.Keys() {
+			values.Del(key)
+		}
+		u.RawQuery = values.Encode()
 	}
-	u.RawQuery = values.Encode()
 
 	if !options.KeepFragments {
 		// Remove any fragments

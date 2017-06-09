@@ -161,7 +161,7 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 			Doc:         doc,
 			RawURL:      rawurl,
 			Date:        doc.Date.Format("January 2, 2006"),
-			Content:     getHTMLContent(doc),
+			Content:     htemp.HTML(doc.HTML()),
 			ExtractLogs: extractLogs,
 		}
 
@@ -175,28 +175,6 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 	} else {
 		return http.StatusOK, nil
 	}
-}
-
-func getHTMLContent(doc *boilerpipe.TextDocument) htemp.HTML {
-	buf := &bytes.Buffer{}
-
-	startP := true
-	data := []byte(doc.Content())
-	for i := int64(0); i < int64(len(data)); i++ {
-		if startP {
-			buf.WriteString("<p>")
-			startP = false
-		}
-
-		if data[i] == '\n' {
-			buf.WriteString("</p>")
-			startP = true
-		} else {
-			buf.WriteByte(data[i])
-		}
-	}
-
-	return htemp.HTML(buf.String())
 }
 
 var templIndex = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>

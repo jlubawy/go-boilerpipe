@@ -2,14 +2,25 @@ package backoff
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
 
-var (
-	ErrPermanentHTTP    = errors.New("received a permanent HTTP error")
-	ErrRetriesExhausted = errors.New("retries exhausted")
-)
+type httpError struct {
+	resp *http.Response
+}
+
+func (err httpError) Error() string {
+	return fmt.Sprintf("received error response %s", err.resp.Status)
+}
+
+func IsResponseError(err error) bool {
+	_, ok := err.(httpError)
+	return ok
+}
+
+var ErrRetriesExhausted = errors.New("retries exhausted")
 
 type Config struct {
 	ResponseChecker ResponseChecker
@@ -28,7 +39,7 @@ type NextFunc func() (*http.Response, error)
 // Backoff attempts to complete a given HTTP request using the NextFunc closure
 // until successful, a permanent error is received, or the retries specified by c.Strategy
 // have been exhausted. A valid *http.Response will be returned if and only if err is nil,
-// ErrPermanentHTTP, or ErrRetriesExhausted.
+// IsResponseError, or ErrRetriesExhausted.
 func (c *Config) Backoff(next NextFunc) (*http.Response, error) {
 	for retry := 1; ; retry++ {
 		// Get the next response/error
@@ -44,7 +55,7 @@ func (c *Config) Backoff(next NextFunc) (*http.Response, error) {
 			return resp, nil
 
 		case StatusPermanent:
-			return resp, ErrPermanentHTTP
+			return resp, httpError{resp}
 
 		case StatusTemporary:
 			interval, ok := c.Strategy.Retry(retry)
