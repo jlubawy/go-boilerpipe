@@ -53,7 +53,7 @@ func TestArticleExtractor(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		doc, err := boilerpipe.NewTextDocument(bytes.NewReader(testData.Document), u)
+		doc, err := boilerpipe.NewDocument(bytes.NewReader(testData.Document), u)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -14,7 +14,7 @@ type terminatingBlocks struct{}
 
 func (terminatingBlocks) Name() string { return "TerminatingBlocks" }
 
-func (terminatingBlocks) Process(doc *boilerpipe.TextDocument) bool {
+func (terminatingBlocks) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 
 	for i := range doc.TextBlocks {
@@ -85,7 +85,7 @@ type documentTitleMatchClassifier struct{}
 
 func (documentTitleMatchClassifier) Name() string { return "DocumentTitleMatchClassifier" }
 
-func (p documentTitleMatchClassifier) Process(doc *boilerpipe.TextDocument) bool {
+func (p documentTitleMatchClassifier) Process(doc *boilerpipe.Document) bool {
 	if len(doc.Title) == 0 {
 		return false
 	}
@@ -224,7 +224,7 @@ type trailingHeadlineToBoilerplate struct{}
 
 func (trailingHeadlineToBoilerplate) Name() string { return "TrailingHeadlineToBoilerplate" }
 
-func (p trailingHeadlineToBoilerplate) Process(doc *boilerpipe.TextDocument) bool {
+func (p trailingHeadlineToBoilerplate) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 
 	for i := len(doc.TextBlocks) - 1; i >= 0; i-- {
@@ -259,7 +259,7 @@ type blockProximityFusionParams struct {
 
 func (p *blockProximityFusionParams) Name() string { return p.name }
 
-func (p *blockProximityFusionParams) Process(doc *boilerpipe.TextDocument) bool {
+func (p *blockProximityFusionParams) Process(doc *boilerpipe.Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
@@ -338,7 +338,7 @@ type boilerplateBlock struct{}
 
 func (boilerplateBlock) Name() string { return "BoilerplateBlock" }
 
-func (p boilerplateBlock) Process(doc *boilerpipe.TextDocument) bool {
+func (p boilerplateBlock) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 
 	for i := 0; i < len(doc.TextBlocks); i++ {
@@ -367,7 +367,7 @@ const ExpandToSameTagLevelMinimumWords = 150
 
 func (keepLargestBlocks) Name() string { return "KeepLargestBlocks" }
 
-func (p keepLargestBlocks) Process(doc *boilerpipe.TextDocument) bool {
+func (p keepLargestBlocks) Process(doc *boilerpipe.Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
@@ -465,7 +465,7 @@ type keepLargestFulltextBlock struct{}
 
 func (keepLargestFulltextBlock) Name() string { return "KeepLargestFulltextBlock" }
 
-func (p keepLargestFulltextBlock) Process(doc *boilerpipe.TextDocument) bool {
+func (p keepLargestFulltextBlock) Process(doc *boilerpipe.Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
@@ -511,7 +511,7 @@ type expandTitleToContent struct{}
 
 func (expandTitleToContent) Name() string { return "ExpandTitleToContent" }
 
-func (p expandTitleToContent) Process(doc *boilerpipe.TextDocument) bool {
+func (p expandTitleToContent) Process(doc *boilerpipe.Document) bool {
 	j := 0
 	title := -1
 	contentStart := -1
@@ -554,7 +554,7 @@ type largeBlockSameTagLevelToContent struct{}
 
 func (largeBlockSameTagLevelToContent) Name() string { return "LargeBlockSameTagLevelToContent" }
 
-func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.TextDocument) bool {
+func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 	tagLevel := -1
 
@@ -595,7 +595,7 @@ const DefaultMinNumberOfWords = 60
 
 func (ignoreBlocksAfterContent) Name() string { return "IgnoreBlocksAfterContent" }
 
-func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.TextDocument) bool {
+func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 	numWords := 0
 	foundEndOfText := false
@@ -626,7 +626,7 @@ type numWordsRulesClassifier struct{}
 
 func (numWordsRulesClassifier) Name() string { return "NumWordsRulesClassifier" }
 
-func (p numWordsRulesClassifier) Process(doc *boilerpipe.TextDocument) bool {
+func (p numWordsRulesClassifier) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 
 	if len(doc.TextBlocks) == 0 {
@@ -714,7 +714,7 @@ type listAtEnd struct{}
 
 func (listAtEnd) Name() string { return "ListAtEnd" }
 
-func (p listAtEnd) Process(doc *boilerpipe.TextDocument) bool {
+func (p listAtEnd) Process(doc *boilerpipe.Document) bool {
 	hasChanged := false
 	tagLevel := math.MaxInt32
 

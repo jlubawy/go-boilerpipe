@@ -44,7 +44,7 @@ See the [boilerpipe](boilerpipe/main.go) command-line tool for an example on how
 
     // Must provide an io.Reader (e.g. http.Response.Body) and an option *url.URL
     // which helps to extract a date for the article.
-    doc, err := boilerpipe.NewTextDocument(r io.Reader, u *url.URL)
+    doc, err := boilerpipe.NewDocument(r io.Reader, u *url.URL)
     if err != nil {
         return nil, err
     }

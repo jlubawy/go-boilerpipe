@@ -11,7 +11,7 @@ import (
 	"github.com/jlubawy/go-boilerpipe/filter"
 )
 
-type LoggerFunc func(stageName string, hasChanged bool, doc *boilerpipe.TextDocument)
+type LoggerFunc func(stageName string, hasChanged bool, doc *boilerpipe.Document)
 
 var loggerFunc LoggerFunc
 
@@ -24,12 +24,12 @@ func DisableLogging() {
 }
 
 func EnableHTMLLogging(fn func(htmlStr string), isVerbose bool) {
-	EnableLogging(func(stageName string, hasChanged bool, doc *boilerpipe.TextDocument) {
+	EnableLogging(func(stageName string, hasChanged bool, doc *boilerpipe.Document) {
 		var data = struct {
-			StageName    string
-			HasChanged   bool
-			TextDocument *boilerpipe.TextDocument
-			IsVerbose    bool
+			StageName  string
+			HasChanged bool
+			Document   *boilerpipe.Document
+			IsVerbose  bool
 		}{
 			stageName,
 			hasChanged,
@@ -60,7 +60,7 @@ func getStageName(i int, e Extractor, p boilerpipe.Processor) string {
 	}
 }
 
-func defaultExtractorProcessor(e Extractor, doc *boilerpipe.TextDocument) bool {
+func defaultExtractorProcessor(e Extractor, doc *boilerpipe.Document) bool {
 	hasChanged := false
 
 	if loggerFunc != nil {
@@ -82,7 +82,7 @@ type articleExtractor struct{}
 
 func (e articleExtractor) Name() string { return "Article" }
 
-func (e articleExtractor) Process(doc *boilerpipe.TextDocument) bool {
+func (e articleExtractor) Process(doc *boilerpipe.Document) bool {
 	return defaultExtractorProcessor(e, doc)
 }
 
@@ -142,7 +142,7 @@ var templHTML = htemp.Must(htemp.New("").Funcs(funcMap).Parse(`<h1>{{.StageName}
 			{{end}}
 		</thead>
 		<tbody>
-		{{range $i, $el := .TextDocument.TextBlocks}}
+		{{range $i, $el := .Document.TextBlocks}}
 			<tr{{if $el.IsContent}} class="success"{{end}}>
 				<td>{{$i}}</td>
 				<td>{{LabelCSV .Labels}}</td>

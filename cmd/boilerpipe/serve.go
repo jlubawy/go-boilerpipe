@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -141,7 +140,7 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 			extractor.EnableHTMLLogging(fn, true)
 		}
 
-		doc, err := boilerpipe.NewTextDocument(r, u)
+		doc, err := boilerpipe.NewDocument(r, u)
 		if err != nil {
 			errHttp = err
 			return
@@ -151,7 +150,7 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 
 		data := struct {
 			Version     string
-			Doc         *boilerpipe.TextDocument
+			Doc         *boilerpipe.Document
 			RawURL      string
 			Date        string
 			Content     htemp.HTML

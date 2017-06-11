@@ -2,7 +2,6 @@ package boilerpipe
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -139,22 +138,21 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 	tb.TagLevel = int(math.Min(float64(tb.TagLevel), float64(next.TagLevel)))
 }
 
-type TextDocument struct {
-	Title      string
-	URL        *normurl.URL
-	Date       time.Time
-	TextBlocks []*TextBlock
+type Document struct {
+	Title string
+	URL   *normurl.URL
+	Date  time.Time
 
-	ContentType string
-	errs        []error
+	TextBlocks []*TextBlock
+	errs       []error
 }
 
-func NewTextDocument(r io.Reader, u *url.URL) (doc *TextDocument, err error) {
+func NewDocument(r io.Reader, u *url.URL) (doc *Document, err error) {
 	z := html.NewTokenizer(r)
 
 	h := NewContentHandler()
 
-	doc = &TextDocument{}
+	doc = &Document{}
 
 	if u != nil {
 		doc.URL = normurl.NewURL(u, nil)
@@ -206,15 +204,15 @@ DONE:
 	return
 }
 
-func (doc *TextDocument) Errors() []error {
+func (doc *Document) Errors() []error {
 	return doc.errs
 }
 
-func (doc *TextDocument) Content() string {
+func (doc *Document) Content() string {
 	return doc.Text(true, false)
 }
 
-func (doc *TextDocument) HTML() string {
+func (doc *Document) HTML() string {
 	buf := &bytes.Buffer{}
 
 	startP := true
@@ -236,7 +234,39 @@ func (doc *TextDocument) HTML() string {
 	return buf.String()
 }
 
-func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
+type TextDocument struct {
+	Title   string    `json:"title"`
+	URL     string    `json:"url"`
+	Date    time.Time `json:"date"`
+	Content string    `json:"content"`
+}
+
+func (doc *Document) GetTextDocument() *TextDocument {
+	return &TextDocument{
+		Title:   doc.Title,
+		URL:     doc.URL.String(),
+		Date:    doc.Date,
+		Content: doc.Content(),
+	}
+}
+
+type HTMLDocument struct {
+	Title   string    `json:"title"`
+	URL     string    `json:"url"`
+	Date    time.Time `json:"date"`
+	Content string    `json:"content"`
+}
+
+func (doc *Document) GetHTMLDocument() *HTMLDocument {
+	return &HTMLDocument{
+		Title:   doc.Title,
+		URL:     doc.URL.String(),
+		Date:    doc.Date,
+		Content: doc.HTML(),
+	}
+}
+
+func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	buf := &bytes.Buffer{}
 
 	for _, tb := range doc.TextBlocks {
@@ -256,33 +286,9 @@ func (doc *TextDocument) Text(includeContent, includeNonContent bool) string {
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
 }
 
-func (doc *TextDocument) MarshalJSON() ([]byte, error) {
-	m := make(map[string]interface{})
-
-	m["title"] = doc.Title
-
-	if doc.URL != nil {
-		m["url"] = doc.URL.String()
-	}
-
-	if doc.Date.Equal(time.Time{}) {
-		m["date"] = ""
-	} else {
-		m["date"] = doc.Date
-	}
-
-	if doc.ContentType == "html" {
-		m["content"] = doc.HTML()
-	} else {
-		m["content"] = doc.Content()
-	}
-
-	return json.Marshal(m)
-}
-
 type Processor interface {
 	Name() string
-	Process(*TextDocument) bool
+	Process(*Document) bool
 }
 
 var reMultiSpace = regexp.MustCompile(`[\s]+`)

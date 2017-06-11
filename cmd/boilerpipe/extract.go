@@ -84,7 +84,7 @@ func extract(r io.Reader, u *url.URL) {
 	bytesReader := bytes.NewReader(d)
 
 	// Get text document and extract content
-	doc, err := boilerpipe.NewTextDocument(bytesReader, u)
+	doc, err := boilerpipe.NewDocument(bytesReader, u)
 	if err != nil {
 		fatalf("error: %s\n", err)
 	}
@@ -100,7 +100,7 @@ func extract(r io.Reader, u *url.URL) {
 			m["url"] = ""
 		}
 		m["document"] = d
-		m["results"] = doc
+		m["results"] = doc.GetHTMLDocument()
 		v = m
 	} else {
 		v = doc
