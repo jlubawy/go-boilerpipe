@@ -154,6 +154,10 @@ type Extractor interface {
 
 type htmlExtractor struct{}
 
+func Extract(r io.Reader) ([]string, error) {
+	return htmlExtractor{}.Extract(r)
+}
+
 // Extract extracts all anchor URLs from a given HTML document.
 // Any errors parsing the document are returned.
 func (htmlExtractor) Extract(r io.Reader) ([]string, error) {
