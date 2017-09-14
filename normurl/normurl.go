@@ -72,6 +72,13 @@ func NewURL(u *url.URL, options *NormalizeOptions) *URL {
 		options = &defaultNormalizeOptions
 	}
 
+	// Prepend an implicit HTTP scheme if one is missing and
+	// re-parses the URL if needed.
+	if u.Scheme == "" {
+		u.Scheme = "http"
+		u, _ = url.Parse(u.String())
+	}
+
 	if !options.KeepQuery {
 		u.RawQuery = ""
 	} else {
@@ -125,7 +132,7 @@ func (u *URL) IsAbs() bool {
 }
 
 func IsChild(root, ref *URL) bool {
-	if root.Hostname() != ref.Hostname() {
+	if root.Root() != ref.Root() {
 		return false
 	}
 
