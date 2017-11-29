@@ -98,6 +98,6 @@ func TestExponentialBackoffSuccess(t *testing.T) {
 	if resp.StatusCode == http.StatusOK {
 		t.Logf("received %s", resp.Status)
 	} else {
-		t.Fatalf("expected interval %d, but got %d", http.StatusText(http.StatusOK), resp.Status)
+		t.Fatalf("want status=%d, got=%d", http.StatusOK, resp.StatusCode)
 	}
 }

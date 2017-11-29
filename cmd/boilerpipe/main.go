@@ -73,7 +73,7 @@ func main() {
 		if exists {
 			command.CommandFunc(args[1:])
 		} else {
-			fmt.Fprint(os.Stderr, `boilerpipe: unknown subcommand "%s"
+			fmt.Fprintf(os.Stderr, `boilerpipe: unknown subcommand "%s"
 Run 'boilerpipe help' for usage.
 `, cmdStr)
 		}

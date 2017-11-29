@@ -11,21 +11,21 @@ func TestStartsWithNumber(t *testing.T) {
 
 	// True
 	if !startsWithNumber("123 comments") {
-		t.Error()
+		t.Error("expected to start with number")
 	}
 
 	// True
 	if !startsWithNumber("456 users responded in") {
-		t.Error()
+		t.Error("expected to start with number")
 	}
 
 	// False
 	if startsWithNumber("abc comments") {
-		t.Error()
+		t.Error("not expected to start with number")
 	}
 
 	// False
 	if startsWithNumber("def users responded in") {
-		t.Error()
+		t.Error("not expected to start with number")
 	}
 }
