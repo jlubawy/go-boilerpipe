@@ -11,7 +11,7 @@ normalized URL, the date, and the content.
 
 ## Command-line
 
-To install ```go install github.com/jlubawy/go-boilerpipe/cmd/boilerpipe```
+To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
 
     > boilerpipe help
 
