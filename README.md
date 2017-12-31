@@ -33,7 +33,7 @@ To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
 
 ## Using the library
 
-See the [boilerpipe](boilerpipe/main.go) command-line tool for an example on how to use the library.
+See the [boilerpipe](cmd/boilerpipe/main.go) command-line tool for an example on how to use the library.
 
     import (
         "fmt"
