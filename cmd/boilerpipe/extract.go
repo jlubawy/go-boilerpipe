@@ -36,7 +36,8 @@ func extractFunc(args []string) {
 		extract(os.Stdin, nil)
 	} else {
 		u, errURL := url.Parse(flagset.Args()[0])
-		if errURL == nil {
+		// url.Parse(RequestURI) does not error anymore on fs paths
+		if errURL == nil && u.Scheme != "file" && u.Scheme != "" {
 			httpExtract(u, func(r io.Reader, err error) {
 				if err != nil {
 					fatalf("error: %s\n", err)
