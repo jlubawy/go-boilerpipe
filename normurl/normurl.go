@@ -1,6 +1,7 @@
 package normurl
 
 import (
+	"encoding"
 	"net/url"
 	"path"
 	"regexp"
@@ -101,6 +102,15 @@ func NewURL(u *url.URL, options *NormalizeOptions) *URL {
 	return &URL{
 		gu: u,
 	}
+}
+
+var _ encoding.TextMarshaler = (*URL)(nil)
+
+func (u *URL) MarshalText() ([]byte, error) {
+	if u == nil || u.gu == nil {
+		return []byte("null"), nil
+	}
+	return []byte(u.String()), nil
 }
 
 func Parse(rawurl string) (*URL, error) {

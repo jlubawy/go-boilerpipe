@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -369,58 +368,4 @@ func (as *AtomStack) Pop() atom.Atom {
 	a := as.a[len(as.a)-1]
 	as.a = as.a[:len(as.a)-1]
 	return a
-}
-
-type URLReader struct {
-	client *http.Client
-	r      io.Reader
-	u      *url.URL
-}
-
-func NewURLReader(client *http.Client, u *url.URL) *URLReader {
-	return &URLReader{
-		client: client,
-		u:      u,
-	}
-}
-
-func (r *URLReader) URL() *url.URL {
-	return r.u
-}
-
-func (r *URLReader) Read(p []byte) (n int, err error) {
-	if r.r != nil {
-		return r.r.Read(p)
-	}
-
-	resp, err := r.client.Get(r.u.String())
-	if err != nil {
-		return 0, err
-	}
-	r.r = resp.Body
-
-	if resp.StatusCode >= 400 {
-		return 0, &URLReaderErr{
-			StatusCode: resp.StatusCode,
-			Status:     resp.Status,
-		}
-	}
-
-	return r.r.Read(p)
-}
-
-func (r *URLReader) Close() error {
-	if r.r == nil {
-		return nil
-	}
-	return r.Close()
-}
-
-type URLReaderErr struct {
-	StatusCode int
-	Status     string
-}
-
-func (err *URLReaderErr) Error() string {
-	return err.Status
 }
