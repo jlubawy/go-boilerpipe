@@ -14,7 +14,10 @@ import (
 	"github.com/jlubawy/go-boilerpipe/extractor"
 )
 
-var flagTest bool
+var (
+	FlagTest        bool
+	FlagPrettyPrint bool
+)
 
 var commandExtract = &Command{
 	Description: "extract text content from an HTML document",
@@ -25,52 +28,69 @@ var commandExtract = &Command{
 func extractFunc(args []string) {
 	flagset := flag.NewFlagSet("", flag.ExitOnError)
 	flagset.Usage = extractHelpFunc
-	flagset.BoolVar(&flagTest, "test", false, "output JSON document for extractor_test.go")
+	flagset.BoolVar(&FlagTest, "test", false, "output JSON document for extractor_test.go")
+	flagset.BoolVar(&FlagPrettyPrint, "pretty-print", false, "pretty print JSON output")
 	flagset.Parse(args)
 
 	if len(flagset.Args()) > 1 {
 		fatalf("usage: boilerpipe extract command\n\nToo many arguments given.\n")
 	}
 
-	if len(flagset.Args()) == 0 {
-		extract(os.Stdin, nil)
-	} else {
-		u, errURL := url.Parse(flagset.Args()[0])
-		if errURL == nil {
-			httpExtract(u, func(r io.Reader, err error) {
-				if err != nil {
-					fatalf("error: %s\n", err)
-				}
+	argDocumentPath := flagset.Arg(0)
 
-				extract(r, u)
-			})
-		} else {
-			f, errFile := os.Open(flagset.Args()[0])
-			if errFile != nil {
-				fatalf("error: %s\nerror:%s\n", errURL, errFile)
+	var (
+		r io.Reader
+		u *url.URL
+	)
+
+	if argDocumentPath == "" {
+		// If no URL is provided, read from stdin
+		r = os.Stdin
+
+	} else {
+		// Else attempt to parse the URL or path
+
+		if _, err := os.Stat(argDocumentPath); err == nil {
+			// If no error then the path is likely to a local file
+			f, err := os.Open(flagset.Args()[0])
+			if err != nil {
+				fatalf("Error opening file: %v\n", err)
 			}
 			defer f.Close()
+			r = f
 
-			extract(f, nil)
+		} else {
+			// Else it's likely a URL
+			var err error
+			u, err = url.Parse(argDocumentPath)
+			if err != nil {
+				fatalf("Error parsing URL: %v\n", err)
+			}
+
+			rc, err := httpGet(argDocumentPath)
+			if err != nil {
+				fatalf("Error getting document: %v\n", err)
+			}
+			defer rc.Close()
+			r = rc
 		}
 	}
+
+	extract(r, u)
 }
 
-func httpExtract(u *url.URL, fn func(io.Reader, error)) {
+func httpGet(urlStr string) (io.ReadCloser, error) {
 	client := NewClient()
-	resp, err := client.Get(u.String())
+	resp, err := client.Get(urlStr)
 	if err != nil {
-		fn(nil, err)
-		return
+		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		fn(nil, errors.New("received HTTP response "+resp.Status))
-		return
+		return nil, errors.New("received HTTP response " + resp.Status)
 	}
 
-	fn(resp.Body, err)
+	return resp.Body, nil
 }
 
 func extract(r io.Reader, u *url.URL) {
@@ -91,7 +111,7 @@ func extract(r io.Reader, u *url.URL) {
 	extractor.Article().Process(doc)
 
 	var v interface{}
-	if flagTest {
+	if FlagTest {
 		m := make(map[string]interface{})
 
 		if u != nil {
@@ -106,13 +126,18 @@ func extract(r io.Reader, u *url.URL) {
 		v = doc
 	}
 
-	if err := json.NewEncoder(os.Stdout).Encode(v); err != nil {
+	enc := json.NewEncoder(os.Stdout)
+	if FlagPrettyPrint {
+		enc.SetIndent("", "  ")
+	}
+
+	if err := enc.Encode(v); err != nil {
 		fatalf("error: %s\n", err)
 	}
 }
 
 func extractHelpFunc() {
-	fmt.Fprint(os.Stderr, `usage: boilerpipe extract [-test=false] [document]
+	fmt.Fprint(os.Stderr, `usage: boilerpipe extract [-test=false] [document path]
 
 Extract extracts text from the provided HTML document and prints the results to
 stdout.

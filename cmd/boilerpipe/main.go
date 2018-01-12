@@ -80,8 +80,12 @@ Run 'boilerpipe help' for usage.
 	}
 }
 
-func fatalf(fmtStr string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, fmtStr, args...)
+func infof(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, args...)
+}
+
+func fatalf(format string, args ...interface{}) {
+	infof(format, args...)
 	os.Exit(1)
 }
 

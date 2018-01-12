@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	htemp "html/template"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -89,7 +88,7 @@ func runHandler(handler func(w http.ResponseWriter, r *http.Request) (int, error
 var ErrMethodNotSupported = errors.New("method not supported")
 
 func indexHandler(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method != "GET" {
+	if r.Method != http.MethodGet {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
@@ -107,7 +106,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 }
 
 func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method != "GET" {
+	if r.Method != http.MethodGet {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
@@ -123,57 +122,49 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 		return http.StatusBadRequest, err
 	}
 
-	var errHttp error
-
-	httpExtract(u, func(r io.Reader, err error) {
-		if err != nil {
-			errHttp = err
-			return
-		}
-
-		extractLogs := make([]htemp.HTML, 0)
-
-		if enableLogging {
-			fn := func(htmlStr string) {
-				extractLogs = append(extractLogs, htemp.HTML(htmlStr))
-			}
-			extractor.EnableHTMLLogging(fn, true)
-		}
-
-		doc, err := boilerpipe.NewDocument(r, u)
-		if err != nil {
-			errHttp = err
-			return
-		}
-
-		extractor.Article().Process(doc)
-
-		data := struct {
-			Version     string
-			Doc         *boilerpipe.Document
-			RawURL      string
-			Date        string
-			Content     htemp.HTML
-			ExtractLogs []htemp.HTML
-		}{
-			Version:     boilerpipe.Version,
-			Doc:         doc,
-			RawURL:      rawurl,
-			Date:        doc.Date.Format("January 2, 2006"),
-			Content:     htemp.HTML(doc.HTML()),
-			ExtractLogs: extractLogs,
-		}
-
-		if err := templExtract.Execute(w, data); err != nil {
-			panic(err)
-		}
-	})
-
-	if errHttp != nil {
-		return http.StatusInternalServerError, errHttp
-	} else {
-		return http.StatusOK, nil
+	rc, err := httpGet(rawurl)
+	if err != nil {
+		return http.StatusInternalServerError, err
 	}
+	defer rc.Close()
+
+	extractLogs := make([]htemp.HTML, 0)
+
+	if enableLogging {
+		fn := func(htmlStr string) {
+			extractLogs = append(extractLogs, htemp.HTML(htmlStr))
+		}
+		extractor.EnableHTMLLogging(fn, true)
+	}
+
+	doc, err := boilerpipe.NewDocument(rc, u)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	extractor.Article().Process(doc)
+
+	data := struct {
+		Version     string
+		Doc         *boilerpipe.Document
+		RawURL      string
+		Date        string
+		Content     htemp.HTML
+		ExtractLogs []htemp.HTML
+	}{
+		Version:     boilerpipe.Version,
+		Doc:         doc,
+		RawURL:      rawurl,
+		Date:        doc.Date.Format("January 2, 2006"),
+		Content:     htemp.HTML(doc.HTML()),
+		ExtractLogs: extractLogs,
+	}
+
+	if err := templExtract.Execute(w, data); err != nil {
+		panic(err)
+	}
+
+	return http.StatusOK, nil
 }
 
 var templIndex = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
