@@ -295,14 +295,20 @@ var templStrs = map[string]string{
           <div class="card-header" id="heading-{{$logIdx}}">
             <h5 class="mb-0">
               <button class="btn btn-link" data-toggle="collapse" data-target="#collapse-{{$logIdx}}" aria-expanded="false" aria-controls="#collapse-{{$logIdx}}">
-                <i class="icon {{if $logEntry.HasChanged}}ion-checkmark{{else}}ion-close{{end}}"></i> {{$logEntry.FilterName}}
+                <i class="icon {{if $logEntry.HasChanged}}ion-checkmark{{else}}ion-close{{end}}"></i> {{$logEntry.FilterName}} ({{len $logEntry.Document.TextBlocks}})
               </button>
             </h5>
           </div>
 
           <div id="collapse-{{$logIdx}}" class="collapse" aria-labelledby="heading-{{$logIdx}}" data-parent="#accordion">
             <div class="card-body">
-              {{$logEntry.HasChanged}}
+{{range $textBlockIdx, $textBlock := $logEntry.Document.TextBlocks}}
+              <div class="card">
+                <div class="card-body">
+                  <p>{{$textBlockIdx}}: {{.Text}}</p>
+                </div>
+              </div>
+{{end}}
             </div>
           </div>
         </div>
