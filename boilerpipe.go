@@ -285,11 +285,6 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
 }
 
-type Processor interface {
-	Name() string
-	Process(*Document) bool
-}
-
 var reMultiSpace = regexp.MustCompile(`[\s]+`)
 
 func ExtractText(r io.Reader) (string, error) {

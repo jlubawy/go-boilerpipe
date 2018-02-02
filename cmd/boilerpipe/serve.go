@@ -109,8 +109,6 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
-	enableLogging := r.FormValue("logging") != ""
-
 	rawurl := r.FormValue("url")
 	if rawurl == "" {
 		return http.StatusBadRequest, errors.New("Must specify url.")
@@ -129,37 +127,22 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 
 	extractLogs := make([]htemp.HTML, 0)
 
-	if enableLogging {
-		fn := func(htmlStr string) {
-			extractLogs = append(extractLogs, htemp.HTML(htmlStr))
-		}
-		EnableHTMLLogging(fn, true)
-	}
-
 	doc, err := boilerpipe.NewDocument(rc, u)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
+	boilerpipe.ArticlePipeline().Process(doc)
 
-	Article().Process(doc)
-
-	data := struct {
-		Version     string
-		Doc         *boilerpipe.Document
-		RawURL      string
-		Date        string
-		Content     htemp.HTML
-		ExtractLogs []htemp.HTML
-	}{
-		Version:     boilerpipe.Version,
-		Doc:         doc,
-		RawURL:      rawurl,
-		Date:        doc.Date.Format("January 2, 2006"),
-		Content:     htemp.HTML(doc.HTML()),
-		ExtractLogs: extractLogs,
+	data := map[string]interface{}{
+		"Content":     htemp.HTML(doc.HTML()),
+		"Date":        doc.Date.Format("January 2, 2006"),
+		"Doc":         doc,
+		"ExtractLogs": extractLogs,
+		"RawURL":      rawurl,
+		"Version":     boilerpipe.Version,
 	}
 
-	if err := templExtract.Execute(w, data); err != nil {
+	if err := templExtract.Execute(w, &data); err != nil {
 		panic(err)
 	}
 
@@ -168,120 +151,120 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 
 var templIndex = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8">
 
-        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
 
-        <title>Boilerpipe {{.Version}}</title>
-    </head>
-    <body>
-        <div class="container">
-            <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    <nav class="navbar navbar-default">
-                        <div class="container-fluid">
-                            <div class="navbar-header">
-                                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
-                            </div>
-                        </div>
-                    </nav>
-                    <form method="GET" action="extract">
-                        <div class="form-group">
-                            <label for="txtUrl">Article URL</label>
-                            <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
-                        </div>
-                        <div class="checkbox">
-                            <label>
-                                <input type="checkbox" name="logging"> Enable logging?
-                            </label>
-                        </div>
-                        <button type="submit" class="btn btn-default">Submit</button>
-                    </form>
-                </div>
+    <title>Boilerpipe {{.Version}}</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <nav class="navbar navbar-default">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
+              </div>
             </div>
+          </nav>
+          <form method="GET" action="extract">
+            <div class="form-group">
+              <label for="txtUrl">Article URL</label>
+              <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
+            </div>
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" name="logging"> Enable logging?
+              </label>
+            </div>
+            <button type="submit" class="btn btn-default">Submit</button>
+          </form>
         </div>
-    </body>
+      </div>
+    </div>
+  </body>
 </html>`))
 
 var templExtract = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8">
 
-        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
 
-        <title>Boilerpipe {{.Version}} | {{.Doc.Title}}</title>
-    </head>
-    <body>
-        <div class="container">
-            <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    <nav class="navbar navbar-default">
-                        <div class="container-fluid">
-                            <div class="navbar-header">
-                                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
-                            </div>
-                        </div>
-                    </nav>
-                </div>
+    <title>Boilerpipe {{.Version}} | {{.Doc.Title}}</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <nav class="navbar navbar-default">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
+              </div>
             </div>
-            <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    <dl class="dl-horizontal">
-                        <dt>Title</dt>
-                        <dd><a href="{{.RawURL}}" target="_blank">{{.Doc.Title}}</a></dd>
-
-                        <dt>Date</dt>
-                        <dd>{{.Date}}</dd>
-
-                        <dt>URL</dt>
-                        <dd>{{.Doc.URL}}</dd>
-
-                        <dt>Content</dt>
-                        <dd>{{.Content}}</dd>
-                    </dl>
-                </div>
-            </div>
-            {{range .ExtractLogs}}
-            <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    {{.}}
-                </div>
-            </div>
-            {{end}}
+          </nav>
         </div>
-    </body>
+      </div>
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <dl class="dl-horizontal">
+            <dt>Title</dt>
+            <dd><a href="{{.RawURL}}" target="_blank">{{.Doc.Title}}</a></dd>
+
+            <dt>Date</dt>
+            <dd>{{.Date}}</dd>
+
+            <dt>URL</dt>
+            <dd>{{.Doc.URL}}</dd>
+
+            <dt>Content</dt>
+            <dd>{{.Content}}</dd>
+          </dl>
+        </div>
+      </div>
+{{range .ExtractLogs}}
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          {{.}}
+        </div>
+      </div>
+{{end}}
+    </div>
+  </body>
 </html>`))
 
 var templError = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8">
 
-        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
 
-        <title>Boilerpipe {{.Version}}</title>
-    </head>
-    <body>
-        <div class="container">
-            <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    <nav class="navbar navbar-default">
-                        <div class="container-fluid">
-                            <div class="navbar-header">
-                                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
-                            </div>
-                        </div>
-                    </nav>
-                </div>
+    <title>Boilerpipe {{.Version}}</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <nav class="navbar navbar-default">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
+              </div>
             </div>
-            <div class="row">
-                <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                    <h1>{{.Status}}</h1>
-                    <p>{{.Error}}</p>
-                </div>
-            </div>
+          </nav>
         </div>
-    </body>
+      </div>
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <h1>{{.Status}}</h1>
+          <p>{{.Error}}</p>
+        </div>
+      </div>
+    </div>
+  </body>
 </html>`))

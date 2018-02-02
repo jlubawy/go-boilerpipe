@@ -6,7 +6,58 @@ import (
 	"strings"
 )
 
-func TerminatingBlocks() Processor { return terminatingBlocks{} }
+// A Pipeline is a collection of filters that itself satisfies the Filter
+// interface.
+type Pipeline struct {
+	PipelineName string
+	Filters      []Filter
+}
+
+// Statically check that *Pipeline satisfies the Filter interface.
+var _ Filter = (*Pipeline)(nil)
+
+// Name returns the pipeline name.
+func (pipeline *Pipeline) Name() string { return pipeline.PipelineName }
+
+// Process runs a document through the collection of filters in the pipeline.
+func (pipeline *Pipeline) Process(doc *Document) (hasChanged bool) {
+	for _, filter := range pipeline.Filters {
+		hasChanged = filter.Process(doc) || hasChanged
+	}
+	return
+}
+
+func ArticlePipeline() Filter {
+	return &Pipeline{
+		PipelineName: "Article",
+		Filters: []Filter{
+			TerminatingBlocks(),
+			DocumentTitleMatchClassifier(),
+			NumWordsRulesClassifier(),
+			IgnoreBlocksAfterContent(),
+			TrailingHeadlineToBoilerplate(),
+			BlockProximityFusionMaxDistanceOne,
+			BoilerplateBlock(),
+			BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
+			KeepLargestBlocks(),
+			ExpandTitleToContent(),
+			LargeBlockSameTagLevelToContent(),
+			ListAtEnd(),
+		},
+	}
+}
+
+// Filter is the interface that processes documents and notifies if it has
+// changed.
+type Filter interface {
+	// Name returns the name of the filter.
+	Name() string
+
+	// Process processes the document and notifies if it has been changed.
+	Process(doc *Document) (hasChanged bool)
+}
+
+func TerminatingBlocks() Filter { return terminatingBlocks{} }
 
 type terminatingBlocks struct{}
 
@@ -77,13 +128,13 @@ func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
-func DocumentTitleMatchClassifier() Processor { return documentTitleMatchClassifier{} }
+func DocumentTitleMatchClassifier() Filter { return documentTitleMatchClassifier{} }
 
 type documentTitleMatchClassifier struct{}
 
 func (documentTitleMatchClassifier) Name() string { return "DocumentTitleMatchClassifier" }
 
-func (p documentTitleMatchClassifier) Process(doc *Document) bool {
+func (filter documentTitleMatchClassifier) Process(doc *Document) bool {
 	if len(doc.Title) == 0 {
 		return false
 	}
@@ -216,13 +267,13 @@ func GetLongestPart(title, pattern string) string {
 	return strings.TrimSpace(longestPart)
 }
 
-func TrailingHeadlineToBoilerplate() Processor { return trailingHeadlineToBoilerplate{} }
+func TrailingHeadlineToBoilerplate() Filter { return trailingHeadlineToBoilerplate{} }
 
 type trailingHeadlineToBoilerplate struct{}
 
 func (trailingHeadlineToBoilerplate) Name() string { return "TrailingHeadlineToBoilerplate" }
 
-func (p trailingHeadlineToBoilerplate) Process(doc *Document) bool {
+func (filter trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 	hasChanged := false
 
 	for i := len(doc.TextBlocks) - 1; i >= 0; i-- {
@@ -255,18 +306,18 @@ type blockProximityFusionParams struct {
 	sameTagLevelOnly  bool
 }
 
-func (p *blockProximityFusionParams) Name() string { return p.name }
+func (filter *blockProximityFusionParams) Name() string { return filter.name }
 
-func (p *blockProximityFusionParams) Process(doc *Document) bool {
+func (filter *blockProximityFusionParams) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
 
 	hasChanged := false
 
-	maxBlocksDistance := p.maxBlocksDistance
-	contentOnly := p.contentOnly
-	sameTagLevelOnly := p.sameTagLevelOnly
+	maxBlocksDistance := filter.maxBlocksDistance
+	contentOnly := filter.contentOnly
+	sameTagLevelOnly := filter.sameTagLevelOnly
 
 	var prevBlock *TextBlock
 	startBlock := 0
@@ -330,13 +381,13 @@ func (p *blockProximityFusionParams) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func BoilerplateBlock() Processor { return boilerplateBlock{} }
+func BoilerplateBlock() Filter { return boilerplateBlock{} }
 
 type boilerplateBlock struct{}
 
 func (boilerplateBlock) Name() string { return "BoilerplateBlock" }
 
-func (p boilerplateBlock) Process(doc *Document) bool {
+func (filter boilerplateBlock) Process(doc *Document) bool {
 	hasChanged := false
 
 	for i := 0; i < len(doc.TextBlocks); i++ {
@@ -352,7 +403,7 @@ func (p boilerplateBlock) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func KeepLargestBlocks() Processor {
+func KeepLargestBlocks() Filter {
 	return keepLargestBlocks{true, ExpandToSameTagLevelMinimumWords}
 }
 
@@ -365,7 +416,7 @@ const ExpandToSameTagLevelMinimumWords = 150
 
 func (keepLargestBlocks) Name() string { return "KeepLargestBlocks" }
 
-func (p keepLargestBlocks) Process(doc *Document) bool {
+func (filter keepLargestBlocks) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
@@ -389,7 +440,7 @@ func (p keepLargestBlocks) Process(doc *Document) bool {
 				maxNumWords = nw
 				n = j
 
-				if p.expandToSameLevelText {
+				if filter.expandToSameLevelText {
 					level = tb.TagLevel
 				}
 			}
@@ -410,7 +461,7 @@ func (p keepLargestBlocks) Process(doc *Document) bool {
 		}
 	}
 
-	if p.expandToSameLevelText && n != -1 {
+	if filter.expandToSameLevelText && n != -1 {
 		// Expand to blocks below the largest
 		for i := len(doc.TextBlocks) - 1; i >= 0; i-- {
 			tb := doc.TextBlocks[i]
@@ -419,7 +470,7 @@ func (p keepLargestBlocks) Process(doc *Document) bool {
 			if tl < level {
 				break
 			} else if tl == level {
-				if tb.NumWords >= p.minWords {
+				if tb.NumWords >= filter.minWords {
 					tb.IsContent = true
 				}
 			}
@@ -433,7 +484,7 @@ func (p keepLargestBlocks) Process(doc *Document) bool {
 			if tl < level {
 				break
 			} else if tl == level {
-				if tb.NumWords >= p.minWords {
+				if tb.NumWords >= filter.minWords {
 					tb.IsContent = true
 				}
 			}
@@ -457,13 +508,13 @@ func isLargestBlock(maxNumWords int, tb *TextBlock) bool {
 	return tb.IsContent && tb.NumWords >= int(minWordPercent*float64(maxNumWords))
 }
 
-func KeepLargestFulltextBlock() Processor { return keepLargestFulltextBlock{} }
+func KeepLargestFulltextBlock() Filter { return keepLargestFulltextBlock{} }
 
 type keepLargestFulltextBlock struct{}
 
 func (keepLargestFulltextBlock) Name() string { return "KeepLargestFulltextBlock" }
 
-func (p keepLargestFulltextBlock) Process(doc *Document) bool {
+func (filter keepLargestFulltextBlock) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
@@ -503,13 +554,13 @@ func (p keepLargestFulltextBlock) Process(doc *Document) bool {
 	return true
 }
 
-func ExpandTitleToContent() Processor { return expandTitleToContent{} }
+func ExpandTitleToContent() Filter { return expandTitleToContent{} }
 
 type expandTitleToContent struct{}
 
 func (expandTitleToContent) Name() string { return "ExpandTitleToContent" }
 
-func (p expandTitleToContent) Process(doc *Document) bool {
+func (filter expandTitleToContent) Process(doc *Document) bool {
 	j := 0
 	title := -1
 	contentStart := -1
@@ -546,13 +597,13 @@ func (p expandTitleToContent) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func LargeBlockSameTagLevelToContent() Processor { return largeBlockSameTagLevelToContent{} }
+func LargeBlockSameTagLevelToContent() Filter { return largeBlockSameTagLevelToContent{} }
 
 type largeBlockSameTagLevelToContent struct{}
 
 func (largeBlockSameTagLevelToContent) Name() string { return "LargeBlockSameTagLevelToContent" }
 
-func (p largeBlockSameTagLevelToContent) Process(doc *Document) bool {
+func (filter largeBlockSameTagLevelToContent) Process(doc *Document) bool {
 	hasChanged := false
 	tagLevel := -1
 
@@ -583,7 +634,7 @@ func (p largeBlockSameTagLevelToContent) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func IgnoreBlocksAfterContent() Processor {
+func IgnoreBlocksAfterContent() Filter {
 	return ignoreBlocksAfterContent{DefaultMinNumberOfWords}
 }
 
@@ -593,7 +644,7 @@ const DefaultMinNumberOfWords = 60
 
 func (ignoreBlocksAfterContent) Name() string { return "IgnoreBlocksAfterContent" }
 
-func (p ignoreBlocksAfterContent) Process(doc *Document) bool {
+func (filter ignoreBlocksAfterContent) Process(doc *Document) bool {
 	hasChanged := false
 	numWords := 0
 	foundEndOfText := false
@@ -606,7 +657,7 @@ func (p ignoreBlocksAfterContent) Process(doc *Document) bool {
 		if tb.IsContent {
 			numWords += getNumFullTextWords(tb)
 		}
-		if eot && numWords >= p.minNumWords {
+		if eot && numWords >= filter.minNumWords {
 			foundEndOfText = true
 		}
 		if foundEndOfText {
@@ -618,13 +669,13 @@ func (p ignoreBlocksAfterContent) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func NumWordsRulesClassifier() Processor { return numWordsRulesClassifier{} }
+func NumWordsRulesClassifier() Filter { return numWordsRulesClassifier{} }
 
 type numWordsRulesClassifier struct{}
 
 func (numWordsRulesClassifier) Name() string { return "NumWordsRulesClassifier" }
 
-func (p numWordsRulesClassifier) Process(doc *Document) bool {
+func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 	hasChanged := false
 
 	if len(doc.TextBlocks) == 0 {
@@ -706,13 +757,13 @@ func getNumFullTextWords(tb *TextBlock) int {
 	}
 }
 
-func ListAtEnd() Processor { return listAtEnd{} }
+func ListAtEnd() Filter { return listAtEnd{} }
 
 type listAtEnd struct{}
 
 func (listAtEnd) Name() string { return "ListAtEnd" }
 
-func (p listAtEnd) Process(doc *Document) bool {
+func (filter listAtEnd) Process(doc *Document) bool {
 	hasChanged := false
 	tagLevel := math.MaxInt32
 

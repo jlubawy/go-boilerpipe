@@ -107,7 +107,7 @@ func extract(r io.Reader, u *url.URL) {
 	if err != nil {
 		fatalf("error: %s\n", err)
 	}
-	boilerpipe.Article().Process(doc)
+	boilerpipe.ArticlePipeline().Process(doc)
 
 	var v interface{}
 	if FlagTest {
