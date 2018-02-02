@@ -47,7 +47,7 @@ See the [boilerpipe](cmd/boilerpipe/main.go) command-line tool for an example on
         return nil, err
     }
 
-    ArticlePipeline().Process(doc)
+    boilerpipe.NewArticlePipeline().Process(doc)
 
     fmt.Println(doc.Title)
     fmt.Println(doc.URL) // normalized URL which can be used to test for URL equality

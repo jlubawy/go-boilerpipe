@@ -7,10 +7,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 
 	"github.com/jlubawy/go-boilerpipe"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 var (
@@ -78,9 +82,19 @@ func extractFunc(args []string) {
 	extract(r, u)
 }
 
+func NewClient() *http.Client {
+	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	if err != nil {
+		fatalf("Error creating cookie jar: %v\n", err)
+	}
+
+	return &http.Client{
+		Jar: jar,
+	}
+}
+
 func httpGet(urlStr string) (io.ReadCloser, error) {
-	client := NewClient()
-	resp, err := client.Get(urlStr)
+	resp, err := NewClient().Get(urlStr)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +110,7 @@ func extract(r io.Reader, u *url.URL) {
 	// Read all to buffer
 	buf := &bytes.Buffer{}
 	if _, err := buf.ReadFrom(r); err != nil {
-		fatalf("error: %s\n", err)
+		fatalf("Error reading buffer: %v\n", err)
 	}
 
 	d := buf.Bytes()
@@ -105,9 +119,9 @@ func extract(r io.Reader, u *url.URL) {
 	// Get text document and extract content
 	doc, err := boilerpipe.NewDocument(bytesReader, u)
 	if err != nil {
-		fatalf("error: %s\n", err)
+		fatalf("Error creating new document: %v\n", err)
 	}
-	boilerpipe.ArticlePipeline().Process(doc)
+	boilerpipe.NewArticlePipeline().Process(doc)
 
 	var v interface{}
 	if FlagTest {
@@ -131,7 +145,7 @@ func extract(r io.Reader, u *url.URL) {
 	}
 
 	if err := enc.Encode(v); err != nil {
-		fatalf("error: %s\n", err)
+		fatalf("Error encoding JSON: %v\n", err)
 	}
 }
 

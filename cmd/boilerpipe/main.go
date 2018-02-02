@@ -2,14 +2,10 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"net/http/cookiejar"
 	"os"
 	"text/template"
 
 	"github.com/jlubawy/go-boilerpipe"
-
-	"golang.org/x/net/publicsuffix"
 )
 
 type Command struct {
@@ -99,15 +95,4 @@ var commandVersion = &Command{
 Version prints the boilerpipe version, as reported by boilerpipe.Version.
 `)
 	},
-}
-
-func NewClient() *http.Client {
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		fatalf("error: %s\n", err)
-	}
-
-	return &http.Client{
-		Jar: jar,
-	}
 }

@@ -27,7 +27,7 @@ func (pipeline *Pipeline) Process(doc *Document) (hasChanged bool) {
 	return
 }
 
-func ArticlePipeline() Filter {
+func NewArticlePipeline() *Pipeline {
 	return &Pipeline{
 		PipelineName: "Article",
 		Filters: []Filter{

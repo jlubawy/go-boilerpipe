@@ -81,7 +81,7 @@ func TestArticlePipeline(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ArticlePipeline().Process(doc)
+		NewArticlePipeline().Process(doc)
 
 		expected := testData.Results
 

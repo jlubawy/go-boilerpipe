@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	htemp "html/template"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,12 +32,16 @@ func serveFunc(args []string) {
 		fatalf("usage: boilerpipe serve command\n\nToo many arguments given.\n")
 	}
 
+	if err := ParseTemplates(); err != nil {
+		fatalf("Error parsing templates: %v\n", err)
+	}
+
 	http.HandleFunc("/", runHandler(indexHandler))
 	http.HandleFunc("/extract", runHandler(extractHandler))
 
 	fmt.Fprintf(os.Stderr, "Listening on port %d\n", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
-		fatalf("error: %s\n", err)
+		fatalf("Error starting server: %v\n", err)
 	}
 }
 
@@ -48,37 +53,32 @@ Serve starts an HTTP server listening on the provided port.
 	os.Exit(1)
 }
 
-func runHandler(handler func(w http.ResponseWriter, r *http.Request) (int, error)) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		code, err := handler(w, r)
+func runHandler(handler func(w http.ResponseWriter, req *http.Request) (int, error)) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		code, err := handler(w, req)
 		if err != nil {
-			var data = struct {
-				Version string
-				Status  string
-				Error   error
-			}{
-				Version: boilerpipe.Version,
-				Status:  http.StatusText(code),
-				Error:   err,
+			data := map[string]interface{}{
+				"Status": http.StatusText(code),
+				"Error":  err,
 			}
-			if err := templError.Execute(w, &data); err != nil {
+			if err := Execute("error", w, data); err != nil {
 				panic(err)
 			}
 		}
 
 		var uriStr string
-		s, err := url.QueryUnescape(r.RequestURI)
+		s, err := url.QueryUnescape(req.RequestURI)
 		if err != nil {
-			uriStr = r.RequestURI
+			uriStr = req.RequestURI
 		} else {
 			uriStr = s
 		}
 
 		fmt.Fprintf(os.Stderr, "[%s] \"%s %s %s\" %d\n",
 			time.Now(),
-			r.Method,
+			req.Method,
 			uriStr,
-			r.Proto,
+			req.Proto,
 			code,
 		)
 	}
@@ -86,30 +86,24 @@ func runHandler(handler func(w http.ResponseWriter, r *http.Request) (int, error
 
 var ErrMethodNotSupported = errors.New("method not supported")
 
-func indexHandler(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method != http.MethodGet {
+func indexHandler(w http.ResponseWriter, req *http.Request) (int, error) {
+	if req.Method != http.MethodGet {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
-	data := struct {
-		Version string
-	}{
-		Version: boilerpipe.Version,
-	}
-
-	if err := templIndex.Execute(w, data); err != nil {
+	if err := Execute("index", w, nil); err != nil {
 		return http.StatusInternalServerError, err
 	}
 
 	return http.StatusOK, nil
 }
 
-func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method != http.MethodGet {
+func extractHandler(w http.ResponseWriter, req *http.Request) (int, error) {
+	if req.Method != http.MethodGet {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
-	rawurl := r.FormValue("url")
+	rawurl := req.FormValue("url")
 	if rawurl == "" {
 		return http.StatusBadRequest, errors.New("Must specify url.")
 	}
@@ -125,146 +119,180 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 	}
 	defer rc.Close()
 
-	extractLogs := make([]htemp.HTML, 0)
+	pipelineFilter := &LoggingPipeline{
+		Pipeline:   boilerpipe.NewArticlePipeline(),
+		LogEntries: make([]LogEntry, 0),
+	}
 
 	doc, err := boilerpipe.NewDocument(rc, u)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
-	boilerpipe.ArticlePipeline().Process(doc)
+	pipelineFilter.Process(doc)
 
 	data := map[string]interface{}{
-		"Content":     htemp.HTML(doc.HTML()),
-		"Date":        doc.Date.Format("January 2, 2006"),
-		"Doc":         doc,
-		"ExtractLogs": extractLogs,
-		"RawURL":      rawurl,
-		"Version":     boilerpipe.Version,
+		"Content":        htemp.HTML(doc.HTML()),
+		"Date":           doc.Date.Format("January 2, 2006"),
+		"Doc":            doc,
+		"pipelineFilter": pipelineFilter,
+		"RawURL":         rawurl,
 	}
-
-	if err := templExtract.Execute(w, &data); err != nil {
+	if err := Execute("extract", w, data); err != nil {
 		panic(err)
 	}
 
 	return http.StatusOK, nil
 }
 
-var templIndex = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
+type LogEntry struct {
+	FilterName string
+	Document   boilerpipe.Document
+	HasChanged bool
+}
+
+type LoggingPipeline struct {
+	Pipeline   *boilerpipe.Pipeline
+	LogEntries []LogEntry
+}
+
+var _ boilerpipe.Filter = (*LoggingPipeline)(nil)
+
+func (pipeline *LoggingPipeline) Name() string { return pipeline.Pipeline.Name() }
+
+func (pipeline *LoggingPipeline) Process(doc *boilerpipe.Document) (hasChanged bool) {
+	pipeline.LogEntries = append(pipeline.LogEntries, LogEntry{
+		FilterName: fmt.Sprintf("%s.000", pipeline.Pipeline.Name()),
+		Document:   *doc,
+		HasChanged: false,
+	})
+
+	for i, filter := range pipeline.Pipeline.Filters {
+		hasChanged = filter.Process(doc) || hasChanged
+
+		pipeline.LogEntries = append(pipeline.LogEntries, LogEntry{
+			FilterName: fmt.Sprintf("%s.%03d.%s", pipeline.Pipeline.Name(), i+1, filter.Name()),
+			Document:   *doc,
+			HasChanged: hasChanged,
+		})
+	}
+	return
+}
+
+var templateMap = make(map[string]*htemp.Template)
+
+func ParseTemplates() error {
+	for name, s := range templStrs {
+		rootTempl, err := htemp.New("").Parse(templRootStr)
+		if err != nil {
+			return err
+		}
+
+		t, err := rootTempl.Parse(s)
+		if err != nil {
+			return fmt.Errorf("template '%s': %v\n", name, err)
+		}
+		templateMap[name] = t
+	}
+
+	return nil
+}
+
+func Execute(name string, w io.Writer, data map[string]interface{}) error {
+	if data == nil {
+		data = make(map[string]interface{})
+	}
+
+	{
+		data["version"] = boilerpipe.Version
+	}
+
+	t, exists := templateMap[name]
+	if !exists {
+		return fmt.Errorf("template %s does not exist")
+	}
+
+	t = t.Lookup("Root")
+	if t == nil {
+		return fmt.Errorf("Root template not found")
+	}
+
+	return t.Execute(w, data)
+}
+
+var templRootStr = `{{define "Root"}}<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
 
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
 
-    <title>Boilerpipe {{.Version}}</title>
+    <title>Boilerpipe {{.version}}</title>
   </head>
+
   <body>
     <div class="container">
       <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <div class="col-xs-12">
           <nav class="navbar navbar-default">
             <div class="container-fluid">
               <div class="navbar-header">
-                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
-              </div>
-            </div>
-          </nav>
-          <form method="GET" action="extract">
-            <div class="form-group">
-              <label for="txtUrl">Article URL</label>
-              <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
-            </div>
-            <div class="checkbox">
-              <label>
-                <input type="checkbox" name="logging"> Enable logging?
-              </label>
-            </div>
-            <button type="submit" class="btn btn-default">Submit</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </body>
-</html>`))
-
-var templExtract = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-
-    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-
-    <title>Boilerpipe {{.Version}} | {{.Doc.Title}}</title>
-  </head>
-  <body>
-    <div class="container">
-      <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-          <nav class="navbar navbar-default">
-            <div class="container-fluid">
-              <div class="navbar-header">
-                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
+                <a class="navbar-brand" href="/">Boilerpipe {{.version}}</a>
               </div>
             </div>
           </nav>
         </div>
-      </div>
-      <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-          <dl class="dl-horizontal">
-            <dt>Title</dt>
-            <dd><a href="{{.RawURL}}" target="_blank">{{.Doc.Title}}</a></dd>
+      </div><!-- row -->
+      {{template "Body" $}}
+    </div><!-- container -->
 
-            <dt>Date</dt>
-            <dd>{{.Date}}</dd>
-
-            <dt>URL</dt>
-            <dd>{{.Doc.URL}}</dd>
-
-            <dt>Content</dt>
-            <dd>{{.Content}}</dd>
-          </dl>
-        </div>
-      </div>
-{{range .ExtractLogs}}
-      <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-          {{.}}
-        </div>
-      </div>
-{{end}}
-    </div>
   </body>
-</html>`))
+</html>
+{{end}}`
 
-var templError = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-
-    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
-
-    <title>Boilerpipe {{.Version}}</title>
-  </head>
-  <body>
-    <div class="container">
-      <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-          <nav class="navbar navbar-default">
-            <div class="container-fluid">
-              <div class="navbar-header">
-                <a class="navbar-brand" href="/">Boilerpipe {{.Version}}</a>
-              </div>
-            </div>
-          </nav>
-        </div>
+var templStrs = map[string]string{
+	"index": `{{define "Body"}}<div class="row">
+  <div class="col-xs-12">
+    <form method="GET" action="extract">
+      <div class="form-group">
+        <label for="txtUrl">Article URL</label>
+        <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
       </div>
-      <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-          <h1>{{.Status}}</h1>
-          <p>{{.Error}}</p>
-        </div>
-      </div>
-    </div>
-  </body>
-</html>`))
+      <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+  </div><!-- col -->
+</div><!-- row -->
+{{end}}`,
+
+	"extract": `{{define "Body"}}<div class="row">
+  <div class="col-xs-12">
+    <dl class="dl-horizontal">
+      <dt>Title</dt>
+      <dd><a href="{{.RawURL}}" target="_blank">{{.Doc.Title}}</a></dd>
+
+      <dt>Date</dt>
+      <dd>{{.Date}}</dd>
+
+      <dt>URL</dt>
+      <dd>{{.Doc.URL}}</dd>
+
+      <dt>Content</dt>
+      <dd>{{.Content}}</dd>
+    </dl>
+  </div><!-- col -->
+</div><!-- row -->
+{{range $.pipelineFilter.LogEntries}}
+<div class="row">
+  <div class="col-xs-12">
+    {{.FilterName}} - {{.HasChanged}}
+  </div><!-- col -->
+</div><!-- row -->
+{{end}}{{end}}`,
+
+	"error": `{{define "Body"}}<div class="row">
+  <div class="col-xs-12">
+    <h1>{{.Status}}</h1>
+    <p>{{.Error}}</p>
+  </div><!-- col -->
+</div><!-- row -->
+{{end}}`,
+}
