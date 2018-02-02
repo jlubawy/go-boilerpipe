@@ -224,6 +224,7 @@ var templRootStr = `{{define "Root"}}<!DOCTYPE html>
   <head>
     <meta charset="utf-8">
 
+    <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous" />
 
     <title>Boilerpipe {{.version}}</title>
@@ -294,7 +295,7 @@ var templStrs = map[string]string{
           <div class="card-header" id="heading-{{$logIdx}}">
             <h5 class="mb-0">
               <button class="btn btn-link" data-toggle="collapse" data-target="#collapse-{{$logIdx}}" aria-expanded="false" aria-controls="#collapse-{{$logIdx}}">
-                {{$logEntry.FilterName}}
+                <i class="icon {{if $logEntry.HasChanged}}ion-checkmark{{else}}ion-close{{end}}"></i> {{$logEntry.FilterName}}
               </button>
             </h5>
           </div>
