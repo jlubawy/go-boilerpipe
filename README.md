@@ -38,7 +38,6 @@ See the [boilerpipe](cmd/boilerpipe/main.go) command-line tool for an example on
         "fmt"
 
         "github.com/jlubawy/go-boilerpipe"
-        "github.com/jlubawy/go-boilerpipe/extractor"
     )
 
     // Must provide an io.Reader (e.g. http.Response.Body) and an option *url.URL
@@ -48,7 +47,7 @@ See the [boilerpipe](cmd/boilerpipe/main.go) command-line tool for an example on
         return nil, err
     }
 
-    extractor.Article().Process(doc)
+    Article().Process(doc)
 
     fmt.Println(doc.Title)
     fmt.Println(doc.URL) // normalized URL which can be used to test for URL equality

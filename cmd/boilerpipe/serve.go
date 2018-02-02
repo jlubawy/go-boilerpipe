@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/jlubawy/go-boilerpipe"
-	"github.com/jlubawy/go-boilerpipe/extractor"
 )
 
 var commandServe = &Command{
@@ -134,7 +133,7 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 		fn := func(htmlStr string) {
 			extractLogs = append(extractLogs, htemp.HTML(htmlStr))
 		}
-		extractor.EnableHTMLLogging(fn, true)
+		EnableHTMLLogging(fn, true)
 	}
 
 	doc, err := boilerpipe.NewDocument(rc, u)
@@ -142,7 +141,7 @@ func extractHandler(w http.ResponseWriter, r *http.Request) (int, error) {
 		return http.StatusInternalServerError, err
 	}
 
-	extractor.Article().Process(doc)
+	Article().Process(doc)
 
 	data := struct {
 		Version     string

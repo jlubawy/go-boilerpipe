@@ -1,4 +1,4 @@
-package extractor
+package boilerpipe
 
 import (
 	"bytes"
@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/jlubawy/go-boilerpipe"
 )
 
 type extractJSON struct {
@@ -53,7 +51,7 @@ func TestArticleExtractor(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		doc, err := boilerpipe.NewDocument(bytes.NewReader(testData.Document), u)
+		doc, err := NewDocument(bytes.NewReader(testData.Document), u)
 		if err != nil {
 			t.Fatal(err)
 		}

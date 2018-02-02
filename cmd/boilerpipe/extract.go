@@ -11,7 +11,6 @@ import (
 	"os"
 
 	"github.com/jlubawy/go-boilerpipe"
-	"github.com/jlubawy/go-boilerpipe/extractor"
 )
 
 var (
@@ -108,7 +107,7 @@ func extract(r io.Reader, u *url.URL) {
 	if err != nil {
 		fatalf("error: %s\n", err)
 	}
-	extractor.Article().Process(doc)
+	boilerpipe.Article().Process(doc)
 
 	var v interface{}
 	if FlagTest {

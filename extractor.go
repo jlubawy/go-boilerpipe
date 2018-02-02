@@ -1,4 +1,4 @@
-package extractor
+package boilerpipe
 
 import (
 	"bytes"
@@ -6,12 +6,9 @@ import (
 	htemp "html/template"
 	"sort"
 	"strings"
-
-	"github.com/jlubawy/go-boilerpipe"
-	"github.com/jlubawy/go-boilerpipe/filter"
 )
 
-type LoggerFunc func(stageName string, hasChanged bool, doc *boilerpipe.Document)
+type LoggerFunc func(stageName string, hasChanged bool, doc *Document)
 
 var loggerFunc LoggerFunc
 
@@ -24,11 +21,11 @@ func DisableLogging() {
 }
 
 func EnableHTMLLogging(fn func(htmlStr string), isVerbose bool) {
-	EnableLogging(func(stageName string, hasChanged bool, doc *boilerpipe.Document) {
+	EnableLogging(func(stageName string, hasChanged bool, doc *Document) {
 		var data = struct {
 			StageName  string
 			HasChanged bool
-			Document   *boilerpipe.Document
+			Document   *Document
 			IsVerbose  bool
 		}{
 			stageName,
@@ -47,12 +44,12 @@ func EnableHTMLLogging(fn func(htmlStr string), isVerbose bool) {
 }
 
 type Extractor interface {
-	boilerpipe.Processor
+	Processor
 
-	Pipeline() []boilerpipe.Processor
+	Pipeline() []Processor
 }
 
-func getStageName(i int, e Extractor, p boilerpipe.Processor) string {
+func getStageName(i int, e Extractor, p Processor) string {
 	if p == nil {
 		return fmt.Sprintf("%s.%03d", e.Name(), i)
 	} else {
@@ -60,7 +57,7 @@ func getStageName(i int, e Extractor, p boilerpipe.Processor) string {
 	}
 }
 
-func defaultExtractorProcessor(e Extractor, doc *boilerpipe.Document) bool {
+func defaultExtractorProcessor(e Extractor, doc *Document) bool {
 	hasChanged := false
 
 	if loggerFunc != nil {
@@ -82,30 +79,30 @@ type articleExtractor struct{}
 
 func (e articleExtractor) Name() string { return "Article" }
 
-func (e articleExtractor) Process(doc *boilerpipe.Document) bool {
+func (e articleExtractor) Process(doc *Document) bool {
 	return defaultExtractorProcessor(e, doc)
 }
 
-func (e articleExtractor) Pipeline() []boilerpipe.Processor {
-	return []boilerpipe.Processor{
-		filter.TerminatingBlocks(),
-		filter.DocumentTitleMatchClassifier(),
-		filter.NumWordsRulesClassifier(),
-		filter.IgnoreBlocksAfterContent(),
-		filter.TrailingHeadlineToBoilerplate(),
-		filter.BlockProximityFusionMaxDistanceOne,
-		filter.BoilerplateBlock(),
-		filter.BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
-		filter.KeepLargestBlocks(),
-		filter.ExpandTitleToContent(),
-		filter.LargeBlockSameTagLevelToContent(),
-		filter.ListAtEnd(),
+func (e articleExtractor) Pipeline() []Processor {
+	return []Processor{
+		TerminatingBlocks(),
+		DocumentTitleMatchClassifier(),
+		NumWordsRulesClassifier(),
+		IgnoreBlocksAfterContent(),
+		TrailingHeadlineToBoilerplate(),
+		BlockProximityFusionMaxDistanceOne,
+		BoilerplateBlock(),
+		BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
+		KeepLargestBlocks(),
+		ExpandTitleToContent(),
+		LargeBlockSameTagLevelToContent(),
+		ListAtEnd(),
 	}
 }
 
-func Article() boilerpipe.Processor { return articleExtractor{} }
+func Article() Processor { return articleExtractor{} }
 
-func LabelCSV(labels map[boilerpipe.Label]bool) string {
+func LabelCSV(labels map[Label]bool) string {
 	ls := make([]string, len(labels))
 	i := 0
 	for label := range labels {

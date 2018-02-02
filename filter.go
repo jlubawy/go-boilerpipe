@@ -1,20 +1,18 @@
-package filter
+package boilerpipe
 
 import (
 	"math"
 	"regexp"
 	"strings"
-
-	"github.com/jlubawy/go-boilerpipe"
 )
 
-func TerminatingBlocks() boilerpipe.Processor { return terminatingBlocks{} }
+func TerminatingBlocks() Processor { return terminatingBlocks{} }
 
 type terminatingBlocks struct{}
 
 func (terminatingBlocks) Name() string { return "TerminatingBlocks" }
 
-func (terminatingBlocks) Process(doc *boilerpipe.Document) bool {
+func (terminatingBlocks) Process(doc *Document) bool {
 	hasChanged := false
 
 	for i := range doc.TextBlocks {
@@ -42,13 +40,13 @@ func (terminatingBlocks) Process(doc *boilerpipe.Document) bool {
 					strings.Contains(textLC, "rätta artikeln") ||
 					textLC == "thanks for your comments - this feedback is now closed" {
 
-					tb.AddLabel(boilerpipe.LabelIndicatesEndOfText)
+					tb.AddLabel(LabelIndicatesEndOfText)
 					hasChanged = true
 				}
 
 			} else if tb.LinkDensity == 1.0 {
 				if text == "Comment" {
-					tb.AddLabel(boilerpipe.LabelIndicatesEndOfText)
+					tb.AddLabel(LabelIndicatesEndOfText)
 				}
 			}
 		}
@@ -79,13 +77,13 @@ func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
-func DocumentTitleMatchClassifier() boilerpipe.Processor { return documentTitleMatchClassifier{} }
+func DocumentTitleMatchClassifier() Processor { return documentTitleMatchClassifier{} }
 
 type documentTitleMatchClassifier struct{}
 
 func (documentTitleMatchClassifier) Name() string { return "DocumentTitleMatchClassifier" }
 
-func (p documentTitleMatchClassifier) Process(doc *boilerpipe.Document) bool {
+func (p documentTitleMatchClassifier) Process(doc *Document) bool {
 	if len(doc.Title) == 0 {
 		return false
 	}
@@ -148,14 +146,14 @@ func (p documentTitleMatchClassifier) Process(doc *boilerpipe.Document) bool {
 		text = strings.ToLower(text)
 
 		if _, contains := potentialTitles[text]; contains {
-			tb.AddLabel(boilerpipe.LabelTitle)
+			tb.AddLabel(LabelTitle)
 			hasChanged = true
 			break
 		}
 
 		text = strings.TrimSpace(regexp.MustCompile("[\\?\\!\\.\\-\\:]+").ReplaceAllString(text, ""))
 		if _, contains := potentialTitles[text]; contains {
-			tb.AddLabel(boilerpipe.LabelTitle)
+			tb.AddLabel(LabelTitle)
 			hasChanged = true
 			break
 		}
@@ -218,20 +216,20 @@ func GetLongestPart(title, pattern string) string {
 	return strings.TrimSpace(longestPart)
 }
 
-func TrailingHeadlineToBoilerplate() boilerpipe.Processor { return trailingHeadlineToBoilerplate{} }
+func TrailingHeadlineToBoilerplate() Processor { return trailingHeadlineToBoilerplate{} }
 
 type trailingHeadlineToBoilerplate struct{}
 
 func (trailingHeadlineToBoilerplate) Name() string { return "TrailingHeadlineToBoilerplate" }
 
-func (p trailingHeadlineToBoilerplate) Process(doc *boilerpipe.Document) bool {
+func (p trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 	hasChanged := false
 
 	for i := len(doc.TextBlocks) - 1; i >= 0; i-- {
 		tb := doc.TextBlocks[i]
 
 		if tb.IsContent {
-			if tb.HasLabel(boilerpipe.LabelHeading) {
+			if tb.HasLabel(LabelHeading) {
 				tb.IsContent = false
 				hasChanged = true
 			} else {
@@ -259,7 +257,7 @@ type blockProximityFusionParams struct {
 
 func (p *blockProximityFusionParams) Name() string { return p.name }
 
-func (p *blockProximityFusionParams) Process(doc *boilerpipe.Document) bool {
+func (p *blockProximityFusionParams) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
@@ -270,7 +268,7 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.Document) bool {
 	contentOnly := p.contentOnly
 	sameTagLevelOnly := p.sameTagLevelOnly
 
-	var prevBlock *boilerpipe.TextBlock
+	var prevBlock *TextBlock
 	startBlock := 0
 
 	if contentOnly {
@@ -332,19 +330,19 @@ func (p *blockProximityFusionParams) Process(doc *boilerpipe.Document) bool {
 	return hasChanged
 }
 
-func BoilerplateBlock() boilerpipe.Processor { return boilerplateBlock{} }
+func BoilerplateBlock() Processor { return boilerplateBlock{} }
 
 type boilerplateBlock struct{}
 
 func (boilerplateBlock) Name() string { return "BoilerplateBlock" }
 
-func (p boilerplateBlock) Process(doc *boilerpipe.Document) bool {
+func (p boilerplateBlock) Process(doc *Document) bool {
 	hasChanged := false
 
 	for i := 0; i < len(doc.TextBlocks); i++ {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent == false && tb.HasLabel(boilerpipe.LabelTitle) == false {
+		if tb.IsContent == false && tb.HasLabel(LabelTitle) == false {
 			doc.TextBlocks = append(doc.TextBlocks[:i], doc.TextBlocks[i+1:]...)
 			i--
 			hasChanged = true
@@ -354,7 +352,7 @@ func (p boilerplateBlock) Process(doc *boilerpipe.Document) bool {
 	return hasChanged
 }
 
-func KeepLargestBlocks() boilerpipe.Processor {
+func KeepLargestBlocks() Processor {
 	return keepLargestBlocks{true, ExpandToSameTagLevelMinimumWords}
 }
 
@@ -367,14 +365,14 @@ const ExpandToSameTagLevelMinimumWords = 150
 
 func (keepLargestBlocks) Name() string { return "KeepLargestBlocks" }
 
-func (p keepLargestBlocks) Process(doc *boilerpipe.Document) bool {
+func (p keepLargestBlocks) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
 
 	var (
 		maxNumWords  = -1
-		largestBlock *boilerpipe.TextBlock
+		largestBlock *TextBlock
 		level        = -1
 		j            = 0
 		n            = -1
@@ -405,10 +403,10 @@ func (p keepLargestBlocks) Process(doc *boilerpipe.Document) bool {
 
 		if tb == largestBlock {
 			tb.IsContent = true
-			tb.AddLabel(boilerpipe.LabelVeryLikelyContent)
+			tb.AddLabel(LabelVeryLikelyContent)
 		} else {
 			tb.IsContent = isLargestBlock(maxNumWords, tb)
-			tb.AddLabel(boilerpipe.LabelMightBeContent)
+			tb.AddLabel(LabelMightBeContent)
 		}
 	}
 
@@ -445,7 +443,7 @@ func (p keepLargestBlocks) Process(doc *boilerpipe.Document) bool {
 	return true
 }
 
-func isLargestBlock(maxNumWords int, tb *boilerpipe.TextBlock) bool {
+func isLargestBlock(maxNumWords int, tb *TextBlock) bool {
 	var minWordPercent float64
 	switch {
 	case maxNumWords >= 1000:
@@ -459,19 +457,19 @@ func isLargestBlock(maxNumWords int, tb *boilerpipe.TextBlock) bool {
 	return tb.IsContent && tb.NumWords >= int(minWordPercent*float64(maxNumWords))
 }
 
-func KeepLargestFulltextBlock() boilerpipe.Processor { return keepLargestFulltextBlock{} }
+func KeepLargestFulltextBlock() Processor { return keepLargestFulltextBlock{} }
 
 type keepLargestFulltextBlock struct{}
 
 func (keepLargestFulltextBlock) Name() string { return "KeepLargestFulltextBlock" }
 
-func (p keepLargestFulltextBlock) Process(doc *boilerpipe.Document) bool {
+func (p keepLargestFulltextBlock) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
 		return false
 	}
 
 	max := -1
-	var largestBlock *boilerpipe.TextBlock
+	var largestBlock *TextBlock
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
@@ -498,20 +496,20 @@ func (p keepLargestFulltextBlock) Process(doc *boilerpipe.Document) bool {
 			tb.IsContent = true
 		} else {
 			tb.IsContent = false
-			tb.AddLabel(boilerpipe.LabelMightBeContent)
+			tb.AddLabel(LabelMightBeContent)
 		}
 	}
 
 	return true
 }
 
-func ExpandTitleToContent() boilerpipe.Processor { return expandTitleToContent{} }
+func ExpandTitleToContent() Processor { return expandTitleToContent{} }
 
 type expandTitleToContent struct{}
 
 func (expandTitleToContent) Name() string { return "ExpandTitleToContent" }
 
-func (p expandTitleToContent) Process(doc *boilerpipe.Document) bool {
+func (p expandTitleToContent) Process(doc *Document) bool {
 	j := 0
 	title := -1
 	contentStart := -1
@@ -519,7 +517,7 @@ func (p expandTitleToContent) Process(doc *boilerpipe.Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if contentStart == -1 && tb.HasLabel(boilerpipe.LabelTitle) {
+		if contentStart == -1 && tb.HasLabel(LabelTitle) {
 			title = j
 			contentStart = -1
 		}
@@ -539,7 +537,7 @@ func (p expandTitleToContent) Process(doc *boilerpipe.Document) bool {
 	for i := range doc.TextBlocks[title:contentStart] {
 		tb := doc.TextBlocks[i]
 
-		if tb.HasLabel(boilerpipe.LabelMightBeContent) {
+		if tb.HasLabel(LabelMightBeContent) {
 			hasChanged = (tb.IsContent == false) || hasChanged
 			tb.IsContent = true
 		}
@@ -548,20 +546,20 @@ func (p expandTitleToContent) Process(doc *boilerpipe.Document) bool {
 	return hasChanged
 }
 
-func LargeBlockSameTagLevelToContent() boilerpipe.Processor { return largeBlockSameTagLevelToContent{} }
+func LargeBlockSameTagLevelToContent() Processor { return largeBlockSameTagLevelToContent{} }
 
 type largeBlockSameTagLevelToContent struct{}
 
 func (largeBlockSameTagLevelToContent) Name() string { return "LargeBlockSameTagLevelToContent" }
 
-func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.Document) bool {
+func (p largeBlockSameTagLevelToContent) Process(doc *Document) bool {
 	hasChanged := false
 	tagLevel := -1
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent && tb.HasLabel(boilerpipe.LabelVeryLikelyContent) {
+		if tb.IsContent && tb.HasLabel(LabelVeryLikelyContent) {
 			tagLevel = tb.TagLevel
 			break
 		}
@@ -585,7 +583,7 @@ func (p largeBlockSameTagLevelToContent) Process(doc *boilerpipe.Document) bool 
 	return hasChanged
 }
 
-func IgnoreBlocksAfterContent() boilerpipe.Processor {
+func IgnoreBlocksAfterContent() Processor {
 	return ignoreBlocksAfterContent{DefaultMinNumberOfWords}
 }
 
@@ -595,7 +593,7 @@ const DefaultMinNumberOfWords = 60
 
 func (ignoreBlocksAfterContent) Name() string { return "IgnoreBlocksAfterContent" }
 
-func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.Document) bool {
+func (p ignoreBlocksAfterContent) Process(doc *Document) bool {
 	hasChanged := false
 	numWords := 0
 	foundEndOfText := false
@@ -603,7 +601,7 @@ func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		eot := tb.HasLabel(boilerpipe.LabelIndicatesEndOfText)
+		eot := tb.HasLabel(LabelIndicatesEndOfText)
 
 		if tb.IsContent {
 			numWords += getNumFullTextWords(tb)
@@ -620,32 +618,32 @@ func (p ignoreBlocksAfterContent) Process(doc *boilerpipe.Document) bool {
 	return hasChanged
 }
 
-func NumWordsRulesClassifier() boilerpipe.Processor { return numWordsRulesClassifier{} }
+func NumWordsRulesClassifier() Processor { return numWordsRulesClassifier{} }
 
 type numWordsRulesClassifier struct{}
 
 func (numWordsRulesClassifier) Name() string { return "NumWordsRulesClassifier" }
 
-func (p numWordsRulesClassifier) Process(doc *boilerpipe.Document) bool {
+func (p numWordsRulesClassifier) Process(doc *Document) bool {
 	hasChanged := false
 
 	if len(doc.TextBlocks) == 0 {
 		return false
 	}
 
-	prevBlock := boilerpipe.TextBlockEmptyStart
+	prevBlock := TextBlockEmptyStart
 	currentBlock := doc.TextBlocks[0]
-	var nextBlock *boilerpipe.TextBlock
+	var nextBlock *TextBlock
 
 	if len(doc.TextBlocks) >= 2 {
 		nextBlock = doc.TextBlocks[1]
 	} else {
-		nextBlock = boilerpipe.TextBlockEmptyStart
+		nextBlock = TextBlockEmptyStart
 	}
 
 	hasChanged = classify(prevBlock, currentBlock, nextBlock) || hasChanged
 
-	if nextBlock != boilerpipe.TextBlockEmptyStart {
+	if nextBlock != TextBlockEmptyStart {
 		for i := 3; i < len(doc.TextBlocks); i++ {
 			prevBlock = currentBlock
 			currentBlock = nextBlock
@@ -654,14 +652,14 @@ func (p numWordsRulesClassifier) Process(doc *boilerpipe.Document) bool {
 		}
 		prevBlock = currentBlock
 		currentBlock = nextBlock
-		nextBlock = boilerpipe.TextBlockEmptyEnd
+		nextBlock = TextBlockEmptyEnd
 		hasChanged = classify(prevBlock, currentBlock, nextBlock) || hasChanged
 	}
 
 	return hasChanged
 }
 
-func classify(prev, curr, next *boilerpipe.TextBlock) bool {
+func classify(prev, curr, next *TextBlock) bool {
 	isContent := false
 
 	if curr.LinkDensity <= 0.333333 {
@@ -698,7 +696,7 @@ func classify(prev, curr, next *boilerpipe.TextBlock) bool {
 	return isContent
 }
 
-func getNumFullTextWords(tb *boilerpipe.TextBlock) int {
+func getNumFullTextWords(tb *TextBlock) int {
 	minTextDensity := 9.0
 
 	if tb.TextDensity >= minTextDensity {
@@ -708,24 +706,24 @@ func getNumFullTextWords(tb *boilerpipe.TextBlock) int {
 	}
 }
 
-func ListAtEnd() boilerpipe.Processor { return listAtEnd{} }
+func ListAtEnd() Processor { return listAtEnd{} }
 
 type listAtEnd struct{}
 
 func (listAtEnd) Name() string { return "ListAtEnd" }
 
-func (p listAtEnd) Process(doc *boilerpipe.Document) bool {
+func (p listAtEnd) Process(doc *Document) bool {
 	hasChanged := false
 	tagLevel := math.MaxInt32
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent && tb.HasLabel(boilerpipe.LabelVeryLikelyContent) {
+		if tb.IsContent && tb.HasLabel(LabelVeryLikelyContent) {
 			tagLevel = tb.TagLevel
 		} else {
-			if tb.TagLevel > tagLevel && tb.HasLabel(boilerpipe.LabelMightBeContent) &&
-				tb.HasLabel(boilerpipe.LabelList) && tb.LinkDensity == 0.0 {
+			if tb.TagLevel > tagLevel && tb.HasLabel(LabelMightBeContent) &&
+				tb.HasLabel(LabelList) && tb.LinkDensity == 0.0 {
 				tb.IsContent = true
 				hasChanged = true
 			} else {
