@@ -286,13 +286,29 @@ var templStrs = map[string]string{
   </div><!-- row -->
 </div><!-- container -->
 <div class="container">
-{{range $.pipelineFilter.LogEntries}}
   <div class="row">
     <div class="col">
-      {{.FilterName}} - {{.HasChanged}}
+      <div id="accordion">
+{{range $logIdx, $logEntry := $.pipelineFilter.LogEntries}}
+        <div class="card">
+          <div class="card-header" id="heading-{{$logIdx}}">
+            <h5 class="mb-0">
+              <button class="btn btn-link" data-toggle="collapse" data-target="#collapse-{{$logIdx}}" aria-expanded="false" aria-controls="#collapse-{{$logIdx}}">
+                {{$logEntry.FilterName}}
+              </button>
+            </h5>
+          </div>
+
+          <div id="collapse-{{$logIdx}}" class="collapse" aria-labelledby="heading-{{$logIdx}}" data-parent="#accordion">
+            <div class="card-body">
+              {{$logEntry.HasChanged}}
+            </div>
+          </div>
+        </div>
+{{end}}
+      </div><!-- #accordion -->
     </div><!-- col -->
   </div><!-- row -->
-{{end}}
 </div><!-- container -->
 {{end}}`,
 
