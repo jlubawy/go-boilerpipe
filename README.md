@@ -23,7 +23,6 @@ To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
 
     The commands are:
 
-           crawl      crawl a website for HTML documents
            extract    extract text content from an HTML document
            serve      start a HTTP server for extracting text from HTML documents
            version    print boilerpipe version

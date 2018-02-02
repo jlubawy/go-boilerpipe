@@ -19,7 +19,6 @@ type Command struct {
 }
 
 var commands = map[string]*Command{
-	"crawl":   commandCrawl,
 	"extract": commandExtract,
 	"serve":   commandServe,
 	"version": commandVersion,
