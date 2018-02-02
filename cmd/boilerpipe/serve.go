@@ -224,7 +224,7 @@ var templRootStr = `{{define "Root"}}<!DOCTYPE html>
   <head>
     <meta charset="utf-8">
 
-    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous" />
 
     <title>Boilerpipe {{.version}}</title>
   </head>
@@ -232,67 +232,77 @@ var templRootStr = `{{define "Root"}}<!DOCTYPE html>
   <body>
     <div class="container">
       <div class="row">
-        <div class="col-xs-12">
-          <nav class="navbar navbar-default">
-            <div class="container-fluid">
-              <div class="navbar-header">
-                <a class="navbar-brand" href="/">Boilerpipe {{.version}}</a>
-              </div>
-            </div>
+        <div class="col">
+          <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="/">Boilerpipe {{.version}}</a>
           </nav>
-        </div>
+        </div><!-- col -->
       </div><!-- row -->
-      {{template "Body" $}}
     </div><!-- container -->
 
+    {{template "Body" $}}
+
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
   </body>
 </html>
 {{end}}`
 
 var templStrs = map[string]string{
-	"index": `{{define "Body"}}<div class="row">
-  <div class="col-xs-12">
-    <form method="GET" action="extract">
-      <div class="form-group">
-        <label for="txtUrl">Article URL</label>
-        <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
-      </div>
-      <button type="submit" class="btn btn-default">Submit</button>
-    </form>
-  </div><!-- col -->
-</div><!-- row -->
+	"index": `{{define "Body"}}<div class="container">
+  <div class="row">
+    <div class="col">
+      <form method="GET" action="extract">
+        <div class="form-group">
+          <label for="txtUrl">Article URL</label>
+          <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
+        </div>
+
+        <button type="submit" class="btn btn-success">Extract</button>
+      </form>
+    </div><!-- col -->
+  </div><!-- row -->
+</div><!-- container -->
 {{end}}`,
 
-	"extract": `{{define "Body"}}<div class="row">
-  <div class="col-xs-12">
-    <dl class="dl-horizontal">
-      <dt>Title</dt>
-      <dd><a href="{{.RawURL}}" target="_blank">{{.Doc.Title}}</a></dd>
+	"extract": `{{define "Body"}}<div class="container">
+  <div class="row">
+    <div class="col">
+      <dl class="row">
+        <dt class="col-sm-1">Title</dt>
+        <dd class="col-sm-11"><a href="{{.RawURL}}" target="_blank">{{.Doc.Title}}</a></dd>
 
-      <dt>Date</dt>
-      <dd>{{.Date}}</dd>
+        <dt class="col-sm-1">Date</dt>
+        <dd class="col-sm-11">{{.Date}}</dd>
 
-      <dt>URL</dt>
-      <dd>{{.Doc.URL}}</dd>
+        <dt class="col-sm-1">URL</dt>
+        <dd class="col-sm-11">{{.Doc.URL}}</dd>
 
-      <dt>Content</dt>
-      <dd>{{.Content}}</dd>
-    </dl>
-  </div><!-- col -->
-</div><!-- row -->
+        <dt class="col-sm-1">Content</dt>
+        <dd class="col-sm-11">{{.Content}}</dd>
+      </dl>
+    </div><!-- col -->
+  </div><!-- row -->
+</div><!-- container -->
+<div class="container">
 {{range $.pipelineFilter.LogEntries}}
-<div class="row">
-  <div class="col-xs-12">
-    {{.FilterName}} - {{.HasChanged}}
-  </div><!-- col -->
-</div><!-- row -->
-{{end}}{{end}}`,
+  <div class="row">
+    <div class="col">
+      {{.FilterName}} - {{.HasChanged}}
+    </div><!-- col -->
+  </div><!-- row -->
+{{end}}
+</div><!-- container -->
+{{end}}`,
 
-	"error": `{{define "Body"}}<div class="row">
-  <div class="col-xs-12">
-    <h1>{{.Status}}</h1>
-    <p>{{.Error}}</p>
-  </div><!-- col -->
-</div><!-- row -->
+	"error": `{{define "Body"}}<div class="container">
+  <div class="row">
+    <div class="col">
+      <h1>{{.Status}}</h1>
+      <p>{{.Error}}</p>
+    </div><!-- col -->
+  </div><!-- row -->
+</div><!-- container -->
 {{end}}`,
 }
