@@ -4,7 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 )
 
 func ExampleArticlePipeline() {
+	// Order of URLs much match the content in testdata
 	var rawurls = []string{
 		"https://blog.openshift.com/day-18-boilerpipe-article-extraction-for-java-developers",
 		"https://lasvegassun.com/news/2017/apr/20/lease-no-rent-for-raiders-at-las-vegas-stadium",
@@ -19,7 +21,7 @@ func ExampleArticlePipeline() {
 		"https://dealbook.nytimes.com/2006/09/12/big-names-pull-cash-from-venture-capital-fund-over-political-contributions",
 	}
 
-	for _, rawurl := range rawurls {
+	for i, rawurl := range rawurls {
 		var date time.Time
 
 		// Normalize the URL
@@ -29,14 +31,14 @@ func ExampleArticlePipeline() {
 		}
 
 		// Retrieve the content
-		resp, err := http.Get(rawurl)
+		f, err := os.Open(filepath.Join("testdata", fmt.Sprintf("%d.html", i)))
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer resp.Body.Close()
+		defer f.Close()
 
 		// Create and process the document
-		doc, err := ParseDocument(resp.Body)
+		doc, err := ParseDocument(f)
 		if err != nil {
 			log.Fatal(err)
 		}
