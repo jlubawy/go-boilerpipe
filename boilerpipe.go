@@ -340,27 +340,3 @@ func ExtractText(r io.Reader) (string, error) {
 DONE:
 	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
 }
-
-type AtomStack struct {
-	a []atom.Atom
-}
-
-func NewAtomStack() *AtomStack {
-	return &AtomStack{
-		a: make([]atom.Atom, 0),
-	}
-}
-
-func (as *AtomStack) Push(a atom.Atom) *AtomStack {
-	as.a = append(as.a, a)
-	return as
-}
-
-func (as *AtomStack) Pop() atom.Atom {
-	if len(as.a) == 0 {
-		return atom.Atom(0)
-	}
-	a := as.a[len(as.a)-1]
-	as.a = as.a[:len(as.a)-1]
-	return a
-}

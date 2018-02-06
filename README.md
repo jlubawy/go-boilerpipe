@@ -1,7 +1,9 @@
 # go-boilerpipe
 
-Golang port of the [boilerpipe](https://github.com/kohlschutter/boilerpipe)
-Java library written by Christian Kohlschütter.
+_Golang port of the [boilerpipe](https://github.com/kohlschutter/boilerpipe)
+Java library written by Christian Kohlschütter_
+
+[![GoDoc](https://godoc.org/github.com/jlubawy/go-boilerpipe?status.svg)](https://godoc.org/github.com/jlubawy/go-boilerpipe)
 
 Boilerpipe removes boilerplate and extracts text content from HTML documents.
 
@@ -13,7 +15,7 @@ normalized URL, the date, and the content.
 
 To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
 
-    > boilerpipe help
+    $ boilerpipe help
 
     Boilerpipe removes boilerplate and extracts text content from HTML documents.
 
@@ -32,24 +34,4 @@ To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
 
 ## Using the library
 
-See the [boilerpipe](cmd/boilerpipe/main.go) command-line tool for an example on how to use the library.
-
-    import (
-        "fmt"
-
-        "github.com/jlubawy/go-boilerpipe"
-    )
-
-    // Must provide an io.Reader (e.g. http.Response.Body) and an option *url.URL
-    // which helps to extract a date for the article.
-    doc, err := boilerpipe.NewDocument(r io.Reader, u *url.URL)
-    if err != nil {
-        return nil, err
-    }
-
-    boilerpipe.NewArticlePipeline().Process(doc)
-
-    fmt.Println(doc.Title)
-    fmt.Println(doc.URL) // normalized URL which can be used to test for URL equality
-    fmt.Println(doc.Date)
-    fmt.Print(doc.Content())
+See examples in [boilerpipe_test.go](boilerpipe_test.go).

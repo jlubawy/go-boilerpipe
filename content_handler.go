@@ -13,6 +13,30 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
+type AtomStack struct {
+	s []atom.Atom
+}
+
+func NewAtomStack() *AtomStack {
+	return &AtomStack{
+		s: make([]atom.Atom, 0),
+	}
+}
+
+func (stack *AtomStack) Push(a atom.Atom) *AtomStack {
+	stack.s = append(stack.s, a)
+	return stack
+}
+
+func (stack *AtomStack) Pop() atom.Atom {
+	if len(stack.s) == 0 {
+		return atom.Atom(0)
+	}
+	el := stack.s[len(stack.s)-1]
+	stack.s = stack.s[:len(stack.s)-1]
+	return el
+}
+
 const ANCHOR_TEXT_START = "$\ue00a<"
 const ANCHOR_TEXT_END = ">\ue00a$"
 
