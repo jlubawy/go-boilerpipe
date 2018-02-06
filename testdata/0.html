@@ -1,0 +1,955 @@
+
+<!doctype html>
+<!--[if IE 8]> <html class="ie8 no-js"> <![endif]-->
+<!--[if IE 9]> <html class="ie9 no-js"> <![endif]-->
+<!--[if gt IE 9]><!-->
+<html class="no-js" lang="en-US" prefix="og: http://ogp.me/ns#">
+<!--<![endif]-->
+<head>
+  <script type="text/javascript" src="//www.redhat.com/dtm.js"></script>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Day 18: Boilerpipe--Article Extraction for Java Developers &ndash; OpenShift Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta content="523326BE649B49EB777C11E26245490D" name="msvalidate.01" />
+  <meta name="google-site-verification" content="MCaLEYfZB8HfZSTyMQYZyBeRMXGoKt46uvrwEp-KN3M" />
+
+<!-- This site is optimized with the Yoast SEO plugin v6.2 - https://yoa.st/1yg?utm_content=6.2 -->
+<meta name="description" content="In this blog, we will learn how we can use a Java library called boilerpipe to do article extraction using Java on OpenShift"/>
+<link rel="canonical" href="https://blog.openshift.com/day-18-boilerpipe-article-extraction-for-java-developers/" />
+<link rel="publisher" href="https://plus.google.com/+OpenShift"/>
+<meta property="og:locale" content="en_US" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Day 18: Boilerpipe--Article Extraction for Java Developers &ndash; OpenShift Blog" />
+<meta property="og:description" content="In this blog, we will learn how we can use a Java library called boilerpipe to do article extraction using Java on OpenShift" />
+<meta property="og:url" content="https://blog.openshift.com/day-18-boilerpipe-article-extraction-for-java-developers/" />
+<meta property="og:site_name" content="OpenShift Blog" />
+<meta property="article:section" content="Java" />
+<meta property="article:published_time" content="2013-11-15T00:00:00-08:00" />
+<meta property="article:modified_time" content="2015-01-08T16:59:43-08:00" />
+<meta property="og:updated_time" content="2015-01-08T16:59:43-08:00" />
+<meta property="og:image" content="https://blog.openshift.com/wp-content/uploads/imported/BoilerPipe_Text_Extraction.png" />
+<meta property="og:image:secure_url" content="https://blog.openshift.com/wp-content/uploads/imported/BoilerPipe_Text_Extraction.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:description" content="In this blog, we will learn how we can use a Java library called boilerpipe to do article extraction using Java on OpenShift" />
+<meta name="twitter:title" content="Day 18: Boilerpipe--Article Extraction for Java Developers &ndash; OpenShift Blog" />
+<meta name="twitter:site" content="@OpenShift" />
+<meta name="twitter:image" content="https://blog.openshift.com/wp-content/uploads/imported/BoilerPipe_Text_Extraction.png" />
+<meta name="twitter:creator" content="@OpenShift" />
+<script type='application/ld+json'>{"@context":"http:\/\/schema.org","@type":"WebSite","@id":"#website","url":"https:\/\/blog.openshift.com\/","name":"OpenShift Blog","potentialAction":{"@type":"SearchAction","target":"https:\/\/blog.openshift.com\/?s={search_term_string}","query-input":"required name=search_term_string"}}</script>
+<!-- / Yoast SEO plugin. -->
+
+<link rel='dns-prefetch' href='//assets.openshift.net' />
+<link rel='dns-prefetch' href='//s.w.org' />
+        <script type="text/javascript">
+            window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/2.4\/72x72\/","ext":".png","svgUrl":"https:\/\/s.w.org\/images\/core\/emoji\/2.4\/svg\/","svgExt":".svg","source":{"concatemoji":"https:\/\/blog.openshift.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.9.3"}};
+            !function(a,b,c){function d(a,b){var c=String.fromCharCode;l.clearRect(0,0,k.width,k.height),l.fillText(c.apply(this,a),0,0);var d=k.toDataURL();l.clearRect(0,0,k.width,k.height),l.fillText(c.apply(this,b),0,0);var e=k.toDataURL();return d===e}function e(a){var b;if(!l||!l.fillText)return!1;switch(l.textBaseline="top",l.font="600 32px Arial",a){case"flag":return!(b=d([55356,56826,55356,56819],[55356,56826,8203,55356,56819]))&&(b=d([55356,57332,56128,56423,56128,56418,56128,56421,56128,56430,56128,56423,56128,56447],[55356,57332,8203,56128,56423,8203,56128,56418,8203,56128,56421,8203,56128,56430,8203,56128,56423,8203,56128,56447]),!b);case"emoji":return b=d([55357,56692,8205,9792,65039],[55357,56692,8203,9792,65039]),!b}return!1}function f(a){var c=b.createElement("script");c.src=a,c.defer=c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var g,h,i,j,k=b.createElement("canvas"),l=k.getContext&&k.getContext("2d");for(j=Array("flag","emoji"),c.supports={everything:!0,everythingExceptFlag:!0},i=0;i<j.length;i++)c.supports[j[i]]=e(j[i]),c.supports.everything=c.supports.everything&&c.supports[j[i]],"flag"!==j[i]&&(c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&c.supports[j[i]]);c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&!c.supports.flag,c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.everything||(h=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",h,!1),a.addEventListener("load",h,!1)):(a.attachEvent("onload",h),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),g=c.source||{},g.concatemoji?f(g.concatemoji):g.wpemoji&&g.twemoji&&(f(g.twemoji),f(g.wpemoji)))}(window,document,window._wpemojiSettings);
+        </script>
+        <style type="text/css">
+img.wp-smiley,
+img.emoji {
+    display: inline !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 1em !important;
+    width: 1em !important;
+    margin: 0 .07em !important;
+    vertical-align: -0.1em !important;
+    background: none !important;
+    padding: 0 !important;
+}
+</style>
+<link rel='stylesheet' id='static_assets_css-css'  href='https://assets.openshift.net/content/subdomain.css' type='text/css' media='all' />
+<link rel='stylesheet' id='roots_css-css'  href='https://blog.openshift.com/wp-content/themes/openshift-blog/assets/css/main.min.css?2420d224280b2cf609f6d340f0ab7432' type='text/css' media='all' />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://blog.openshift.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="https://blog.openshift.com/wp-includes/wlwmanifest.xml" />
+<meta name="generator" content="WordPress 4.9.3" />
+<link rel='shortlink' href='https://blog.openshift.com/?p=233' />
+<link rel="alternate" type="application/json+oembed" href="https://blog.openshift.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fblog.openshift.com%2Fday-18-boilerpipe-article-extraction-for-java-developers%2F" />
+<link rel="alternate" type="text/xml+oembed" href="https://blog.openshift.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fblog.openshift.com%2Fday-18-boilerpipe-article-extraction-for-java-developers%2F&#038;format=xml" />
+        <style type="text/css" id="wp-custom-css">
+            /*
+You can add your own CSS here.
+
+Click the help icon above to learn more.
+*/
+#search-iframe {
+  border: none;
+  height: 70vh;
+  width: 100%;
+}       </style>
+      <link href="https://assets.openshift.net/content/subdomain/touch-icon-precomposed.png" rel="apple-touch-icon-precomposed" type="image/png">
+  <link href="https://assets.openshift.net/content/subdomain/favicon32x32.png" rel="shortcut icon" type="text/css">
+  <!--[if IE]><link rel="shortcut icon" href="https://assets.openshift.net/content/subdomain/favicon.ico"><![endif]-->
+  <!-- or, set /favicon.ico for IE10 win -->
+  <meta content="OpenShift" name="application-name">
+  <meta content="#000000" name="msapplication-TileColor">
+  <meta content="https://assets.openshift.net/content/subdomain/touch-icon-precomposed.png" name="msapplication-TileImage">
+  <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+    <script src="https://assets.openshift.net/content/html5shiv.js" type="text/javascript"></script>
+    <script src="https://assets.openshift.net/content/respond.js" type="text/javascript"></script>
+    <link href="https://assets.openshift.net/content/vendor/respond-js/respond-proxy.html" id="respond-proxy" rel="respond-proxy">
+    <link href="https://blog.openshift.com/wp-content/themes/openshift-blog/assets/vendor/respond/cross-domain/respond.proxy.gif" id="respond-redirect" rel="respond-redirect">
+    <script src="https://blog.openshift.com/wp-content/themes/openshift-blog/assets/vendor/respond/cross-domain/respond.proxy.js" type="text/javascript"></script>
+  <![endif]-->
+  <script src="https://assets.openshift.net/content/modernizr.js" type="text/javascript"></script>
+  <script src="https://assets.openshift.net/content/subdomain.js" type="text/javascript"></script>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5322382531b0e401"></script>
+  <script type="text/javascript">
+    var addthis_config = addthis_config||{};addthis_config.ui_click = true;
+    var addthis_share = addthis_share || {};addthis_share = {passthrough : {twitter: {via: "openshift" }}}
+  </script>
+  <link rel="alternate" type="application/rss+xml" title="OpenShift Blog Feed" href="https://blog.openshift.com/feed/">
+</head>
+<body class="post-template-default single single-post postid-233 single-format-standard sidebar-primary">
+
+  <!--[if lt IE 8]>
+    <div class="alert alert-warning">
+      You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.    </div>
+  <![endif]-->
+
+  <!-- Google Tag Manager -->
+<noscript><iframe src="//www.googletagmanager.com/ns.html?id=GTM-PMDVKG"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'//www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-PMDVKG');</script>
+<!-- End Google Tag Manager -->
+
+<div class="navbar navbar-default navbar-openshift" role="navigation">
+  <div class="navbar-header">
+    <div class="dropdown">
+      <a href="#" class="dropdown-toggle navbar-menu-toggle" data-toggle="dropdown">
+        <span class="navbar-menu-title">MENU</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </a>
+      <ul class="dropdown-menu navbar-menu" role="menu">
+        <li class="submenu">
+          <a href="#">Overview</a>
+          <ul id="submenu-overview" class="dropdown-submenu">
+            <li class="submenu-heading">Introduction to OpenShift</li>
+            <li>
+              <a href="https://www.openshift.com/about/index.html">
+                What is OpenShift?
+                <span class="submenu-item-desc">Learn about Red Hat's next-generation cloud application platform.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/container-platform/customers.html">
+                Our Customers
+                <span class="submenu-item-desc">Discover what companies are using OpenShift to deliver a flexible, scalable cloud application environment.</span>
+              </a>
+            </li>
+            <li class="submenu-heading">News</li>
+            <li>
+              <a href="https://www.openshift.com/about/awards.html">
+                Awards
+                <span class="submenu-item-desc">Industry recognition and awards.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://blog.openshift.com/">
+                OpenShift Blog
+                <span class="submenu-item-desc">Keep your finger on the pulse of all things OpenShift.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://blog.openshift.com/category/events/">
+                Events
+                <span class="submenu-item-desc">OpenShift sponsors and attends a variety of in-person events around the globe.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/about/press.html">
+                In the Press
+                <span class="submenu-item-desc">The latest OpenShift news and press releases.</span>
+              </a>
+            </li>
+            <li class="submenu-divider"></li>
+            <li>
+              <a href="http://jobs.redhat.com/job-search-results/?keywords=openshift">
+                Careers <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/about/logos.html">
+                Logos &amp; Media
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="submenu">
+          <a href="#">Features</a>
+          <ul id="submenu-features" class="dropdown-submenu">
+            <li class="submenu-heading">OpenShift Online</li>
+            <li>
+              <a href="https://www.openshift.com/features/index.html">
+                Overview
+                <span class="submenu-item-desc">Quickly develop, host, and scale containerized apps in the public cloud with on-demand access.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/pricing/index.html">
+                Plans &amp; Pricing
+                <span class="submenu-item-desc">Deploy up to 4 services for free. Upgrade and power your apps with up to 48GiB of memory and 100GiB of storage.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://manage.openshift.com/">
+                Sign up for Free
+              </a>
+            </li>
+            <li class="submenu-heading">OpenShift Dedicated</li>
+            <li>
+              <a href="https://www.openshift.com/dedicated/index.html">
+                Overview
+                <span class="submenu-item-desc">Your own private OpenShift cluster, operated by Red Hat.</span>
+              </a>
+            </li>
+            <li class="submenu-heading">OpenShift Container Platform</li>
+            <li>
+              <a href="https://www.openshift.com/container-platform/index.html">
+                Overview
+                <span class="submenu-item-desc">Run OpenShift in your data center or private cloud.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/container-platform/resources.html">
+                Resources
+                <span class="submenu-item-desc">Webinars, datasheets, reference architectures, demo videos and more.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/container-platform/trial.html">
+                Try it for Free
+              </a>
+            </li>
+            <li class="submenu-divider"></li>
+            <li>
+              <a href="https://www.openshift.com/showcase/index.html">
+                Application Gallery
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="submenu">
+          <a href="#">Developers</a>
+          <ul id="submenu-developers" class="dropdown-submenu">
+            <li>
+              <a href="https://docs.openshift.com/online/getting_started/index.html">
+                Getting Started
+                <span class="submenu-item-desc">New to OpenShift? Get your first application up and running and learn the basics.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://hub.openshift.com/">
+                Hub
+                <span class="submenu-item-desc">Find languages, frameworks, databases, and add-on services for OpenShift.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://developers.openshift.com/">
+                Developer Portal
+                <span class="submenu-item-desc">Learn about building, deploying, and managing your applications.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://docs.openshift.com/">
+                Documentation
+              </a>
+            </li>
+            <li class="submenu-divider"></li>
+            <li>
+              <a href="http://stackoverflow.com/questions/tagged/openshift">
+                Stack Overflow
+                <span class="submenu-item-desc">A Q&amp;A site for everything development related. Post a question or browse answers on the 'openshift' tag.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/container-platform/resources.html#training">
+                Training &amp; Certification
+                <span class="submenu-item-desc">Red Hat Training's hands-on, task-focused courses and certifications for IT professionals and developers.</span>
+              </a>
+            </li>
+            <li class="submenu-divider"></li>
+            <li>
+              <a href="https://www.openshift.com/showcase/index.html">
+                Application Gallery
+                <span class="submenu-item-desc">Our showcase of applications running on Red Hat OpenShift Online.</span>
+              </a>
+            </li>
+            <li>
+              <a href="http://www.openshift.org/#contribute">
+                Contribute to OpenShift <i class="fa fa-external-link pull-right"></i>
+                <span class="submenu-item-desc">Get in touch with our product team, or become a part of the OpenShift Origin open source project.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://openshift.uservoice.com/">
+                Vote on Features
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="submenu">
+          <a href="#">Partners</a>
+          <ul id="submenu-partners" class="dropdown-submenu">
+            <li>
+              <a href="https://www.openshift.com/partners/index.html">
+                Become a Partner
+                <span class="submenu-item-desc">Build on the strength of the world's leading open source company.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/partners/index.html">
+                Find OpenShift Partners
+                <span class="submenu-item-desc">Find qualified partners to help you with your OpenShift projects.</span>
+              </a>
+            </li>
+            <li class="submenu-divider"></li>
+            <li>
+              <a href="http://commons.openshift.org/">
+                OpenShift Commons <i class="fa fa-external-link pull-right"></i>
+                <span class="submenu-item-desc">Where users, partners, customers, and contributors come together to collaborate on OpenShift.</span>
+              </a>
+            </li>
+            <li class="submenu-divider"></li>
+            <li>
+              <a href="https://www.openshift.com/grants/index.html">
+                Resource Grants
+                <span class="submenu-item-desc">For non-profits, educational institutions, and open source initiatives.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/startups/index.html">
+                Startup Program
+                <span class="submenu-item-desc">Designed to help startups build and scale.</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="submenu">
+          <a href="#">Support</a>
+          <ul id="submenu-support" class="dropdown-submenu">
+            <li>
+              <a href="https://access.redhat.com/">
+                Red Hat Customer Portal <i class="fa fa-external-link pull-right"></i>
+                <span class="submenu-item-desc">Manage support cases, browse Knowledgebase articles, and more.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://docs.openshift.com/">
+                Documentation
+                <span class="submenu-item-desc">Official product documentation from Red Hat.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://help.openshift.com/">
+                Help Center
+                <span class="submenu-item-desc">The fastest way to find your available support options.</span>
+              </a>
+            </li>
+            <li>
+              <a href="http://stackoverflow.com/questions/tagged/openshift">
+                Stack Overflow <i class="fa fa-external-link pull-right"></i>
+                <span class="submenu-item-desc">A Q&amp;A site for everything development related. Post a question or browse answers on the 'openshift' tag.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.openshift.com/about/contact.html">
+                Contact Us
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="submenu">
+          <a href="#">Connect</a>
+          <ul id="submenu-connect" class="dropdown-submenu">
+            <li>
+              <a href="https://blog.openshift.com/">
+                Blog
+              </a>
+            </li>
+            <li>
+              <a href="https://blog.openshift.com/category/events/">
+                Events &amp; Conferences
+              </a>
+            </li>
+            <li>
+              <a href="http://commons.openshift.org/">
+                OpenShift Commons <i class="fa fa-external-link pull-right"></i>
+                <span class="submenu-item-desc">Where users, partners, customers, and contributors come together to collaborate on OpenShift.</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://twitter.com/openshift">
+                Twitter <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.facebook.com/openshift">
+                Facebook <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/grp/home?gid=4185734">
+                LinkedIn <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/openshift/">
+                GitHub <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://plus.google.com/+OpenShift">
+                Google+ <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.youtube.com/user/rhopenshift">
+                YouTube <i class="fa fa-external-link pull-right"></i>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="submenu visible-xs-block">
+          <a href="#">My Account</a>
+          <ul id="submenu-account" class="dropdown-submenu">
+            <li><a href="https://manage.openshift.com/">OpenShift Online 3 (New!)</a></li>
+            <li><a href="https://openshift.redhat.com/app/console">OpenShift Online 2</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="https://www.openshift.com/about/contact.html">
+            Contact Us
+          </a>
+        </li>
+        <li>
+          <form action="https://help.openshift.com/hc/en-us/search" method="get" id="cse-search-form">
+            <input name="query" id="cse-search-input" class="navbar-search-query form-control" type="text" placeholder="Search" tabindex="1" autocomplete="off" autofocus>
+            <button type="submit" class="btn btn-default fa fa-search" value="Search"></button>
+          </form>
+        </li>
+      </ul>
+    </div>
+    <a class="navbar-brand" href="/"></a>
+  </div>
+  <div class="navbar-collapse collapse">
+    <ul class="nav navbar-nav navbar-right">
+      <li class="hidden-xs dropdown"> <a href="#" class="dropdown-toggle nav-log-in" data-toggle="dropdown"> My Account<span class="caret"></span> </a>
+        <ul class="dropdown-menu">
+          <li><a href="https://manage.openshift.com/">OpenShift Online 3 (New!)</a></li>
+          <li><a href="https://openshift.redhat.com/app/console">OpenShift Online 2</a></li>
+        </ul>
+      </li>
+      <li class="hidden-xs hidden-sm"><a class="nav-sign-up" href="https://manage.openshift.com/">Sign up for Free</a></li>
+    </ul>
+  </div>
+</div>
+  <div class="wrap container" role="document">
+    <div class="content row">
+      <main class="main" role="main">
+          <article class="post-233 post type-post status-publish format-standard hentry category-java category-openshift-online">
+    <header>
+      <h1 class="entry-title">Day 18: Boilerpipe&#8211;Article Extraction for Java Developers</h1>
+      <time class="published" datetime="2013-11-15T00:00:00+00:00">November 15, 2013</time>
+<p class="byline author vcard">By <a href="https://blog.openshift.com/author/shekhargulati/" rel="author" class="fn">Shekhar Gulati</a></p>
+      <script>
+      dataLayer = dataLayer || [];
+      dataLayer.push({
+        'author': "Shekhar Gulati",
+        'datePublished': "2013-11-15"
+      });
+      </script>
+      <p class="addthis_toolbox addthis_default_style" addthis:url="https://blog.openshift.com/day-18-boilerpipe-article-extraction-for-java-developers/" addthis:title="Day 18: Boilerpipe&#8211;Article Extraction for Java Developers">
+        <a class="addthis_button_tweet" data-via="openshift" tw:count="none"></a>
+        <a class="addthis_button_google_plusone" g:plusone:count="false" g:plusone:size="medium"></a>
+        <a class="addthis_button_facebook_like" fb:like:layout="button"></a>
+        <a class="addthis_counter addthis_pill_style"></a>
+      </p>
+    </header>
+    <div class="entry-content">
+      <p>Today for <a href="/learning-30-technologies-in-30-days-a-developer-challenge">my 30 day challenge</a>, I wanted to learn how to do text and image extraction from web links using the Java programming language. This is a common requirement in most of the content discovery websites like <a href="http://www.getprismatic.com">Prismatic</a>. In this blog, I will show you how to use a Java library called <a href="https://code.google.com/p/boilerpipe/">boilerpipe</a> to accomplish this task.</p>
+<h2>Prerequisite</h2>
+<ol>
+<li>
+<p>Basic Java knowledge is required. Install the latest Java Development Kit (JDK) on your operating system. You can either install <a href="http://openjdk.java.net/">OpenJDK 7</a> or <a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Oracle JDK 7</a>. OpenShift supports both OpenJDK 6 and 7.</p>
+</li>
+<li>
+<p>Sign up for an <a href="https://openshift.redhat.com/app/account/new">OpenShift Account</a>.Today for <a href="/learning-30-technologies-in-30-days-a-developer-challenge">my 30 day challenge</a>, I decided to learn how to do text and image extraction from web links using the Java programming language. This is a very common requirement in most of the content discovery websites like <a href="http://www.getprismatic.com">Prismatic</a>. In this blog, we will learn how we can use a Java library called <a href="https://code.google.com/p/boilerpipe/">boilerpipe</a> to accomplish this task.</p>
+</li>
+</ol>
+<h2>Prerequisite</h2>
+<ol>
+<li>
+<p>Basic Java knowledge is required. Install the latest Java Development Kit (JDK) on your operating system. You can either install <a href="http://openjdk.java.net/">OpenJDK 7</a> or <a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Oracle JDK 7</a>. OpenShift supports both OpenJDK 6 and 7.</p>
+</li>
+<li>
+<p>Sign up for an <a href="https://www.openshift.com/app/account/new">OpenShift Account</a>. It is completely free and Red Hat gives every user three free Gears on which to run your applications. At the time of this writing, the combined resources allocated for each user is 1.5 GB of memory and 3 GB of disk space.</p>
+</li>
+<li>
+<p>Install the <a href="https://www.openshift.com/get-started#cli">rhc client tool</a> on your machine. <em>RHC</em> is a ruby gem so you need to have ruby 1.8.7 or above on your machine. To install rhc, just type<code class="text geshifilter-text">sudo gem install rhc</code><br />
+If you already have one, make sure it is the latest one. To update your rhc, execute the command<br />
+<code class="text geshifilter-text">sudo gem update rhc</code><br />
+For additional assistance setting up the rhc command-line tool, see the following page: <a href="https://www.openshift.com/developers/rhc-client-tools-install" title="https://www.openshift.com/developers/rhc-client-tools-install">https://www.openshift.com/developers/rhc-client-tools-install</a></p>
+</li>
+<li>
+<p>Setup your OpenShift account using the <code class="text geshifilter-text">rhc setup</code> command. This command will help you create a namespace and upload your ssh keys to OpenShift server.</p>
+</li>
+</ol>
+<h2>Step1 : Create a JBoss EAP application</h2>
+<p>Let&#8217;s start creating the demo application. The name of the application is <em>newsapp</em>.</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">$ rhc create-app newsapp jbosseap</pre>
+</div>
+<p>If you have access to medium gears then you can use following command.</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">$ rhc create-app newsapp jbosseap -g medium</pre>
+</div>
+<p>This will create an application container for us, called a gear, and setup all of the required SELinux policies and cgroup configuration. OpenShift will also setup a private git repository for us and clone the repository to the local system. Finally, OpenShift will propagate the DNS to the outside world. The application will be accessible at http://newsapp-{domain-name}.rhcloud.com/. Replace {domain-name} with your own unique OpenShift domain name (also sometimes called a namespace).</p>
+<h2>Step 2 : Add Maven dependencies</h2>
+<p>In the <em>pom.xml</em> file add the following dependency:</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">&lt;dependency&gt;
+    &lt;groupId&gt;de.l3s.boilerpipe&lt;/groupId&gt;
+    &lt;artifactId&gt;boilerpipe&lt;/artifactId&gt;
+    &lt;version&gt;1.2.0&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;xerces&lt;/groupId&gt;
+    &lt;artifactId&gt;xercesImpl&lt;/artifactId&gt;
+    &lt;version&gt;2.9.1&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;net.sourceforge.nekohtml&lt;/groupId&gt;
+    &lt;artifactId&gt;nekohtml&lt;/artifactId&gt;
+    &lt;version&gt;1.9.13&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+</div>
+<p>You will also need to add a new repository</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">&lt;repository&gt;
+    &lt;id&gt;boilerpipe-m2-repo&lt;/id&gt;
+    &lt;url&gt;http://boilerpipe.googlecode.com/svn/repo/&lt;/url&gt;
+    &lt;releases&gt;
+        &lt;enabled&gt;true&lt;/enabled&gt;
+    &lt;/releases&gt;
+    &lt;snapshots&gt;
+        &lt;enabled&gt;false&lt;/enabled&gt;
+    &lt;/snapshots&gt;
+&lt;/repository&gt;</pre>
+</div>
+<p>Also update the maven project to Java 7 by updating a couple of properties in the <em>pom.xml</em> file:</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">&lt;maven.compiler.source&gt;1.7&lt;/maven.compiler.source&gt;
+&lt;maven.compiler.target&gt;1.7&lt;/maven.compiler.target&gt;</pre>
+</div>
+<p>Now update the Maven project <em>Right click &gt; Maven &gt; Update Project</em>.</p>
+<h2>Step 3 : Enable CDI</h2>
+<p>We are using CDI for dependency injection. CDI or Context and Dependency injection is a Java EE 6 specification which enables dependency injection in a Java EE 6 project. CDI defines type-safe dependency injection mechanism for Java EE. Almost any POJO can be injected as a CDI bean.</p>
+<p>Create a new xml file named <em>beans.xml</em> in the <em>src/main/webapp/WEB-INF</em> folder. Replace the content of <em>beans.xml</em> with the following:</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">&lt;beans xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee <a href="http://java.sun.com/xml/ns/javaee/beans_1_0.xsd%22&gt;" title='http://java.sun.com/xml/ns/javaee/beans_1_0.xsd"&gt;'>http://java.sun.com/xml/ns/javaee/beans_1_0.xsd"&gt;</a>
+
+&lt;/beans&gt;</pre>
+</div>
+<h2>Step 4 : Create BoilerpipeContentExtractionService</h2>
+<p>Now we can create an BoilerpipeContentExtractionService service class which will take a url and find the title and article text from it.</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+
+import com.newsapp.boilerpipe.image.Image;
+import com.newsapp.boilerpipe.image.ImageExtractor;
+
+import de.l3s.boilerpipe.BoilerpipeExtractor;
+import de.l3s.boilerpipe.document.TextDocument;
+import de.l3s.boilerpipe.extractors.ArticleExtractor;
+import de.l3s.boilerpipe.extractors.CommonExtractors;
+import de.l3s.boilerpipe.sax.BoilerpipeSAXInput;
+import de.l3s.boilerpipe.sax.HTMLDocument;
+import de.l3s.boilerpipe.sax.HTMLFetcher;
+
+public class BoilerpipeContentExtractionService {
+
+    public Content content(String url) {
+        try {
+            final HTMLDocument htmlDoc = HTMLFetcher.fetch(new URL(url));
+            final TextDocument doc = new BoilerpipeSAXInput(htmlDoc.toInputSource()).getTextDocument();
+            String title = doc.getTitle();
+
+            String content = ArticleExtractor.INSTANCE.getText(doc);
+
+            final BoilerpipeExtractor extractor = CommonExtractors.KEEP_EVERYTHING_EXTRACTOR;
+            final ImageExtractor ie = ImageExtractor.INSTANCE;
+
+            List&lt;Image&gt; images = ie.process(new URL(url), extractor);
+
+            Collections.sort(images);
+            String image = null;
+            if (!images.isEmpty()) {
+                image = images.get(0).getSrc();
+            }
+
+            return new Content(title, content.substring(0, 200), image);
+        } catch (Exception e) {
+            return null;
+        }
+
+    }
+}</pre>
+</div>
+<p>The code above:</p>
+<ol>
+<li>First fetches the document at the given url.</li>
+<li>Parses the HTML document and return TextDocument.</li>
+<li>Gets the title from the text document.</li>
+<li>Extracts content from the text and returns a new instance of the application value object.</li>
+</ol>
+<h2>Step 5 : Enable JAX-RS</h2>
+<p>To enable JAX-RS, create a class which extends javax.ws.rs.core.Application and specify the application path using the <em>javax.ws.rs.ApplicationPath</em> annotation as shown below.</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Application;
+
+@ApplicationPath("/api/v1")
+public class JaxrsInitializer extends Application{
+
+
+}</pre>
+</div>
+<h2>Step 6 : Create ContentExtractionResource</h2>
+<p>Now we will create our <em>ContentExtractionResource</em> class which will return a content object as JSON. Create a new class named <em>ContentExtractionResource</em> and replace the code with the contents shown below:</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+
+import com.newsapp.service.BoilerpipeContentExtractionService;
+import com.newsapp.service.Content;
+
+@Path("/content")
+public class ContentExtractionResource {
+
+    @Inject
+    private BoilerpipeContentExtractionService boilerpipeContentExtractionService;
+
+    @GET
+    @Produces(value = MediaType.APPLICATION_JSON)
+    public Content extractContent(@QueryParam("url") String url) {
+        return boilerpipeContentExtractionService.content(url);
+    }
+}</pre>
+</div>
+<h2>Deploy to OpenShift</h2>
+<p>Finally, deploy the changes to OpenShift</p>
+<div class="geshifilter">
+<pre class="text geshifilter-text">$ git add .
+$ git commit -am "NewApp"
+$ git push</pre>
+</div>
+<p>After the code is pushed and the war is successfully deployed, we can view the application running at http://newsapp-{domain-name}.rhcloud.com. My sample application is running at <a href="http://newsapp-t20.rhcloud.com" title="http://newsapp-t20.rhcloud.com">http://newsapp-t20.rhcloud.com</a>.</p>
+<p>Now you can test by submitting a link in the application ui.</p>
+<p><img src="/wp-content/uploads/imported/BoilerPipe_Text_Extraction.png" width="600"></p>
+<p>That&#8217;s it for today. Keep giving feedback.</p>
+<h2>Next Steps</h2>
+<ul>
+<li>
+<a href="https://www.openshift.com/app/account/new">Sign up for OpenShift Online</a> and try this out yourself</li>
+<li>Promote and show off your awesome app in the <a href="https://www.openshift.com/application-gallery">OpenShift Application Gallery</a> today.</li>
+</ul>
+      <dl class="cat-tags clearfix row">
+        <dt>Categories</dt>
+        <dd>
+          <a href="https://blog.openshift.com/category/technologies/java/" rel="category tag">Java</a>, <a href="https://blog.openshift.com/category/products/openshift-online/" rel="category tag">OpenShift Online</a>
+        </dd>
+        <dt>Tags</dt>
+        <dd>
+                  </dd>
+      </dl>
+    </div>
+    <footer>
+          </footer>
+
+<section id="comments">
+      <div class="alert alert-warning">
+      Comments are closed.    </div>
+  </section><!-- /#comments -->
+
+<section id="respond">
+  </section><!-- /#respond -->
+  </article>
+      </main><!-- /.main -->
+              <aside class="sidebar" role="complementary">
+          <section class="widget search-2 widget_search"><!-- this needs wiring up to the Google custom search -->
+<div class="search-form">
+  <form role="form" class="search has-button" id="cse-search-form-body" action="https://blog.openshift.com/search/" method="get">
+    <input type="hidden" name="refinement" value="blog">
+    <div class="form-group">
+      <div class="search-pf-input-group">
+        <input type="search" name="query" class="form-control" placeholder="Search the blog" id="cse-search-input-body" autocomplete="off" dir="ltr" spellcheck="false" style="outline: none;">
+      </div>
+    </div>
+    <div class="form-group">
+      <button class="btn btn-default" type="button"><span class="fa fa-search"></span></button>
+    </div>
+  </form>
+</div></section><section class="widget categories-2 widget_categories"><h3>Categories</h3>      <ul>
+    <li class="cat-item cat-item-984"><a href="https://blog.openshift.com/category/containers/" >Containers</a> (25)
+</li>
+    <li class="cat-item cat-item-2"><a href="https://blog.openshift.com/category/educators/" >Educators</a> (20)
+</li>
+    <li class="cat-item cat-item-421"><a href="https://blog.openshift.com/category/events/" >Events</a> (441)
+</li>
+    <li class="cat-item cat-item-983"><a href="https://blog.openshift.com/category/kubernetes/" >Kubernetes</a> (33)
+</li>
+    <li class="cat-item cat-item-9"><a href="https://blog.openshift.com/category/news/" >News</a> (613)
+</li>
+    <li class="cat-item cat-item-879"><a href="https://blog.openshift.com/category/openshift-commons/" >OpenShift Commons</a> (137)
+</li>
+    <li class="cat-item cat-item-674"><a href="https://blog.openshift.com/category/openshift-ecosystem/" >OpenShift Ecosystem</a> (199)
+</li>
+    <li class="cat-item cat-item-401"><a href="https://blog.openshift.com/category/products/" >Products</a> (1,028)
+<ul class='children'>
+    <li class="cat-item cat-item-11"><a href="https://blog.openshift.com/category/products/openshift-container-platform/" >OpenShift Container Platform</a> (482)
+</li>
+    <li class="cat-item cat-item-522"><a href="https://blog.openshift.com/category/products/openshift-dedicated/" >OpenShift Dedicated</a> (145)
+</li>
+    <li class="cat-item cat-item-12"><a href="https://blog.openshift.com/category/products/openshift-online/" >OpenShift Online</a> (583)
+</li>
+    <li class="cat-item cat-item-13"><a href="https://blog.openshift.com/category/products/openshift-origin/" >OpenShift Origin</a> (440)
+</li>
+</ul>
+</li>
+    <li class="cat-item cat-item-402"><a href="https://blog.openshift.com/category/technologies/" >Technologies</a> (488)
+<ul class='children'>
+    <li class="cat-item cat-item-666"><a href="https://blog.openshift.com/category/technologies/dotnet/" >.NET</a> (15)
+</li>
+    <li class="cat-item cat-item-4"><a href="https://blog.openshift.com/category/technologies/java/" >Java</a> (133)
+</li>
+    <li class="cat-item cat-item-5"><a href="https://blog.openshift.com/category/technologies/jboss/" >JBoss</a> (80)
+</li>
+    <li class="cat-item cat-item-6"><a href="https://blog.openshift.com/category/technologies/jenkins/" >Jenkins</a> (34)
+</li>
+    <li class="cat-item cat-item-7"><a href="https://blog.openshift.com/category/technologies/mongodb/" >MongoDB</a> (81)
+</li>
+    <li class="cat-item cat-item-8"><a href="https://blog.openshift.com/category/technologies/mysql/" >MySQL</a> (39)
+</li>
+    <li class="cat-item cat-item-10"><a href="https://blog.openshift.com/category/technologies/node-js/" >Node.js</a> (74)
+</li>
+    <li class="cat-item cat-item-14"><a href="https://blog.openshift.com/category/technologies/perl/" >Perl</a> (6)
+</li>
+    <li class="cat-item cat-item-15"><a href="https://blog.openshift.com/category/technologies/php/" >PHP</a> (72)
+</li>
+    <li class="cat-item cat-item-16"><a href="https://blog.openshift.com/category/technologies/postgresql/" >PostgreSQL</a> (36)
+</li>
+    <li class="cat-item cat-item-17"><a href="https://blog.openshift.com/category/technologies/python/" >Python</a> (65)
+</li>
+    <li class="cat-item cat-item-18"><a href="https://blog.openshift.com/category/technologies/ruby/" >Ruby</a> (46)
+</li>
+    <li class="cat-item cat-item-985"><a href="https://blog.openshift.com/category/technologies/service-catalog/" >Service Catalog</a> (6)
+</li>
+    <li class="cat-item cat-item-20"><a href="https://blog.openshift.com/category/technologies/tomcat/" >Tomcat</a> (16)
+</li>
+    <li class="cat-item cat-item-21"><a href="https://blog.openshift.com/category/technologies/zend-server/" >Zend Server</a> (8)
+</li>
+</ul>
+</li>
+    <li class="cat-item cat-item-19"><a href="https://blog.openshift.com/category/thought-leadership/" >Thought Leadership</a> (191)
+</li>
+    <li class="cat-item cat-item-413"><a href="https://blog.openshift.com/category/videos/" >Videos</a> (247)
+</li>
+        </ul>
+</section><section class="widget text-4 widget_text"><h3>Useful Links</h3>          <div class="textwidget"><ul>
+  <li>
+    <a href="https://www.openshift.com/application-gallery">App Gallery</a>
+  </li>
+  <li>
+    <a href="https://developers.openshift.com/">Developer Portal</a>
+  </li>
+  <li>
+    <a href="https://help.openshift.com/">Help Center</a>
+  </li>
+  <li>
+    <a href="https://hub.openshift.com/">OpenShift Hub</a>
+  </li>
+  <li>
+    <a href="https://hub.openshift.com/">Plans &amp; Pricing</a>
+  </li>
+  <li>
+    <a href="https://www.openshift.com/startup">Resource Grants</a>
+  </li>
+  <li>
+    <a href="https://www.openshift.com/startup">Startup Program</a>
+  </li>
+  <li>
+    <a href="https://www.openshift.com/products">What is OpenShift?</a>
+  </li>
+</ul></div>
+        </section><section class="widget archives-2 widget_archive"><h3>Archives</h3>       <label class="screen-reader-text" for="archives-dropdown-2">Archives</label>
+        <select id="archives-dropdown-2" name="archive-dropdown" onchange='document.location.href=this.options[this.selectedIndex].value;'>
+
+            <option value="">Select Month</option>
+                <option value='https://blog.openshift.com/2018/02/'> February 2018 &nbsp;(2)</option>
+    <option value='https://blog.openshift.com/2018/01/'> January 2018 &nbsp;(21)</option>
+    <option value='https://blog.openshift.com/2017/12/'> December 2017 &nbsp;(17)</option>
+    <option value='https://blog.openshift.com/2017/11/'> November 2017 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2017/10/'> October 2017 &nbsp;(30)</option>
+    <option value='https://blog.openshift.com/2017/09/'> September 2017 &nbsp;(30)</option>
+    <option value='https://blog.openshift.com/2017/08/'> August 2017 &nbsp;(33)</option>
+    <option value='https://blog.openshift.com/2017/07/'> July 2017 &nbsp;(30)</option>
+    <option value='https://blog.openshift.com/2017/06/'> June 2017 &nbsp;(28)</option>
+    <option value='https://blog.openshift.com/2017/05/'> May 2017 &nbsp;(20)</option>
+    <option value='https://blog.openshift.com/2017/04/'> April 2017 &nbsp;(33)</option>
+    <option value='https://blog.openshift.com/2017/03/'> March 2017 &nbsp;(16)</option>
+    <option value='https://blog.openshift.com/2017/02/'> February 2017 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2017/01/'> January 2017 &nbsp;(18)</option>
+    <option value='https://blog.openshift.com/2016/12/'> December 2016 &nbsp;(8)</option>
+    <option value='https://blog.openshift.com/2016/11/'> November 2016 &nbsp;(11)</option>
+    <option value='https://blog.openshift.com/2016/10/'> October 2016 &nbsp;(16)</option>
+    <option value='https://blog.openshift.com/2016/09/'> September 2016 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2016/08/'> August 2016 &nbsp;(19)</option>
+    <option value='https://blog.openshift.com/2016/07/'> July 2016 &nbsp;(10)</option>
+    <option value='https://blog.openshift.com/2016/06/'> June 2016 &nbsp;(40)</option>
+    <option value='https://blog.openshift.com/2016/05/'> May 2016 &nbsp;(17)</option>
+    <option value='https://blog.openshift.com/2016/04/'> April 2016 &nbsp;(18)</option>
+    <option value='https://blog.openshift.com/2016/03/'> March 2016 &nbsp;(19)</option>
+    <option value='https://blog.openshift.com/2016/02/'> February 2016 &nbsp;(19)</option>
+    <option value='https://blog.openshift.com/2016/01/'> January 2016 &nbsp;(11)</option>
+    <option value='https://blog.openshift.com/2015/12/'> December 2015 &nbsp;(8)</option>
+    <option value='https://blog.openshift.com/2015/11/'> November 2015 &nbsp;(13)</option>
+    <option value='https://blog.openshift.com/2015/10/'> October 2015 &nbsp;(19)</option>
+    <option value='https://blog.openshift.com/2015/09/'> September 2015 &nbsp;(9)</option>
+    <option value='https://blog.openshift.com/2015/08/'> August 2015 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2015/07/'> July 2015 &nbsp;(22)</option>
+    <option value='https://blog.openshift.com/2015/06/'> June 2015 &nbsp;(28)</option>
+    <option value='https://blog.openshift.com/2015/05/'> May 2015 &nbsp;(16)</option>
+    <option value='https://blog.openshift.com/2015/04/'> April 2015 &nbsp;(18)</option>
+    <option value='https://blog.openshift.com/2015/03/'> March 2015 &nbsp;(7)</option>
+    <option value='https://blog.openshift.com/2015/02/'> February 2015 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2015/01/'> January 2015 &nbsp;(15)</option>
+    <option value='https://blog.openshift.com/2014/12/'> December 2014 &nbsp;(13)</option>
+    <option value='https://blog.openshift.com/2014/11/'> November 2014 &nbsp;(20)</option>
+    <option value='https://blog.openshift.com/2014/10/'> October 2014 &nbsp;(22)</option>
+    <option value='https://blog.openshift.com/2014/09/'> September 2014 &nbsp;(15)</option>
+    <option value='https://blog.openshift.com/2014/08/'> August 2014 &nbsp;(24)</option>
+    <option value='https://blog.openshift.com/2014/07/'> July 2014 &nbsp;(21)</option>
+    <option value='https://blog.openshift.com/2014/06/'> June 2014 &nbsp;(24)</option>
+    <option value='https://blog.openshift.com/2014/05/'> May 2014 &nbsp;(29)</option>
+    <option value='https://blog.openshift.com/2014/04/'> April 2014 &nbsp;(38)</option>
+    <option value='https://blog.openshift.com/2014/03/'> March 2014 &nbsp;(30)</option>
+    <option value='https://blog.openshift.com/2014/02/'> February 2014 &nbsp;(48)</option>
+    <option value='https://blog.openshift.com/2014/01/'> January 2014 &nbsp;(37)</option>
+    <option value='https://blog.openshift.com/2013/12/'> December 2013 &nbsp;(35)</option>
+    <option value='https://blog.openshift.com/2013/11/'> November 2013 &nbsp;(41)</option>
+    <option value='https://blog.openshift.com/2013/10/'> October 2013 &nbsp;(43)</option>
+    <option value='https://blog.openshift.com/2013/09/'> September 2013 &nbsp;(39)</option>
+    <option value='https://blog.openshift.com/2013/08/'> August 2013 &nbsp;(37)</option>
+    <option value='https://blog.openshift.com/2013/07/'> July 2013 &nbsp;(30)</option>
+    <option value='https://blog.openshift.com/2013/06/'> June 2013 &nbsp;(40)</option>
+    <option value='https://blog.openshift.com/2013/05/'> May 2013 &nbsp;(29)</option>
+    <option value='https://blog.openshift.com/2013/04/'> April 2013 &nbsp;(26)</option>
+    <option value='https://blog.openshift.com/2013/03/'> March 2013 &nbsp;(32)</option>
+    <option value='https://blog.openshift.com/2013/02/'> February 2013 &nbsp;(27)</option>
+    <option value='https://blog.openshift.com/2013/01/'> January 2013 &nbsp;(31)</option>
+    <option value='https://blog.openshift.com/2012/12/'> December 2012 &nbsp;(36)</option>
+    <option value='https://blog.openshift.com/2012/11/'> November 2012 &nbsp;(37)</option>
+    <option value='https://blog.openshift.com/2012/10/'> October 2012 &nbsp;(34)</option>
+    <option value='https://blog.openshift.com/2012/09/'> September 2012 &nbsp;(33)</option>
+    <option value='https://blog.openshift.com/2012/08/'> August 2012 &nbsp;(49)</option>
+    <option value='https://blog.openshift.com/2012/07/'> July 2012 &nbsp;(25)</option>
+    <option value='https://blog.openshift.com/2012/06/'> June 2012 &nbsp;(33)</option>
+    <option value='https://blog.openshift.com/2012/05/'> May 2012 &nbsp;(38)</option>
+    <option value='https://blog.openshift.com/2012/04/'> April 2012 &nbsp;(38)</option>
+    <option value='https://blog.openshift.com/2012/03/'> March 2012 &nbsp;(7)</option>
+    <option value='https://blog.openshift.com/2012/02/'> February 2012 &nbsp;(11)</option>
+    <option value='https://blog.openshift.com/2012/01/'> January 2012 &nbsp;(8)</option>
+    <option value='https://blog.openshift.com/2011/12/'> December 2011 &nbsp;(11)</option>
+    <option value='https://blog.openshift.com/2011/11/'> November 2011 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2011/10/'> October 2011 &nbsp;(8)</option>
+    <option value='https://blog.openshift.com/2011/09/'> September 2011 &nbsp;(14)</option>
+    <option value='https://blog.openshift.com/2011/08/'> August 2011 &nbsp;(7)</option>
+    <option value='https://blog.openshift.com/2011/07/'> July 2011 &nbsp;(4)</option>
+    <option value='https://blog.openshift.com/2011/06/'> June 2011 &nbsp;(3)</option>
+    <option value='https://blog.openshift.com/2011/05/'> May 2011 &nbsp;(9)</option>
+    <option value='https://blog.openshift.com/2011/04/'> April 2011 &nbsp;(4)</option>
+
+        </select>
+        </section>        </aside><!-- /.sidebar -->
+          </div><!-- /.content -->
+  </div><!-- /.wrap -->
+
+  <footer class="footer-openshift">
+  <div id="powered-by-openshift" class="text-center"><a href="https://hub.openshift.com/quickstarts/1-wordpress-4" title="Powered by OpenShift Online with the WordPress 4 QuickStart"><img src="https://www.openshift.com/sites/default/files/images/powered-transparent-white.png" alt="Powered by OpenShift Online" /></a></div>
+  <div class="container">
+    <div class="row">
+      <section class="widget text-5 widget_text">           <div class="textwidget"><div class="col-xs-3 col-md-3 logo">
+  <a href="https://www.redhat.com/"></a>
+</div>
+<div class=" col-xs-9 col-md-9 text-right">
+  <a href="https://www.openshift.com/legal/privacy.html">
+    Privacy Policy
+  </a>
+  <a href="https://www.openshift.com/legal/terms.html">
+    Terms and Conditions
+  </a>
+  <a href="http://www.openshift.org/" class="hidden-xs">
+    Open Source
+  </a>
+</div></div>
+        </section>    </div>
+  </div>
+</footer>
+
+        <script type="text/javascript">
+        // <![CDATA[
+        var disqus_shortname = 'openshift-blog';
+        (function () {
+            var nodes = document.getElementsByTagName('span');
+            for (var i = 0, url; i < nodes.length; i++) {
+                if (nodes[i].className.indexOf('dsq-postid') != -1 && nodes[i].parentNode.tagName == 'A') {
+                    nodes[i].parentNode.setAttribute('data-disqus-identifier', nodes[i].getAttribute('data-dsqidentifier'));
+                    url = nodes[i].parentNode.href.split('#', 1);
+                    if (url.length == 1) { url = url[0]; }
+                    else { url = url[1]; }
+                    nodes[i].parentNode.href = url + '#disqus_thread';
+                }
+            }
+            var s = document.createElement('script');
+            s.async = true;
+            s.type = 'text/javascript';
+            s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+            (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+        }());
+        // ]]>
+        </script>
+        <script type='text/javascript' src='https://blog.openshift.com/wp-includes/js/wp-embed.min.js?ver=4.9.3'></script>
+
+<script type="text/javascript">
+if (("undefined" !== typeof _satellite) && ("function" === typeof _satellite.pageBottom)) {
+   _satellite.pageBottom();
+}
+</script>
+</body>
+</html>
+
+<!--
+Performance optimized by W3 Total Cache. Learn more: https://www.w3-edge.com/products/
+
+Page Caching using apc (SSL caching disabled)
+Database Caching 16/22 queries in 0.034 seconds using apc
+
+Served from: blog.openshift.com @ 2018-02-06 01:42:22 by W3 Total Cache
+-->

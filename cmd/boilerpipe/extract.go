@@ -105,30 +105,29 @@ func httpGet(urlStr string) (io.ReadCloser, error) {
 }
 
 func extract(r io.Reader, u *normurl.URL) {
-	// Read all to buffer
-	buf := &bytes.Buffer{}
-	if _, err := buf.ReadFrom(r); err != nil {
-		fatalf("Error reading buffer: %v\n", err)
-	}
-
-	d := buf.Bytes()
-	bytesReader := bytes.NewReader(d)
+	var (
+		doc *boilerpipe.Document
+		b   []byte
+		err error
+	)
 
 	// Get text document and extract content
-	doc, err := boilerpipe.ParseDocument(bytesReader)
+	doc, err = boilerpipe.ParseDocument(r)
 	if err != nil {
 		fatalf("Error creating new document: %v\n", err)
 	}
 	boilerpipe.NewArticlePipeline().Process(doc)
 
-	enc := json.NewEncoder(os.Stdout)
 	if FlagPrettyPrint {
-		enc.SetIndent("", "  ")
+		b, err = json.MarshalIndent(doc, "", "  ")
+	} else {
+		b, err = json.Marshal(doc)
 	}
-
-	if err := enc.Encode(doc); err != nil {
+	if err != nil {
 		fatalf("Error encoding JSON: %v\n", err)
 	}
+
+	io.Copy(os.Stdout, bytes.NewReader(b))
 }
 
 func extractHelpFunc() {
