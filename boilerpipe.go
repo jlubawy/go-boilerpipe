@@ -16,6 +16,8 @@ import (
 // Version is the version of the boilerpipe package.
 const Version = "0.2.0"
 
+var reMultiSpace = regexp.MustCompile(`[\s]+`)
+
 type TextBlock struct {
 	Text string
 
@@ -146,41 +148,17 @@ type Document struct {
 }
 
 func ParseDocument(r io.Reader) (doc *Document, err error) {
-	var (
-		z = html.NewTokenizer(r)
-		h = NewContentHandler()
-	)
-
-	doc = new(Document)
-
-	for {
-		tt := z.Next()
-
-		switch tt {
-		case html.ErrorToken:
-			if z.Err() == io.EOF {
-				goto DONE
-			} else {
-				err = z.Err()
-				return
-			}
-
-		case html.TextToken:
-			h.TextToken(z)
-
-		case html.StartTagToken:
-			h.StartElement(z)
-
-		case html.EndTagToken:
-			h.EndElement(z)
-
-		case html.SelfClosingTagToken, html.CommentToken, html.DoctypeToken:
-			// do nothing
-		}
+	var h *ContentHandler
+	h, err = parse(r, func(z *html.Tokenizer, h *ContentHandler) {
+		h.TextToken(z)
+	})
+	if err != nil {
+		return
 	}
 
-DONE:
 	h.FlushBlock()
+
+	doc = new(Document)
 
 	// Set the rest of the document fields
 	doc.Title = h.title
@@ -223,46 +201,54 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
 }
 
-var reMultiSpace = regexp.MustCompile(`[\s]+`)
-
 func ParseText(r io.Reader) (string, error) {
-	z := html.NewTokenizer(r)
 	buf := &bytes.Buffer{}
+	fn := func(z *html.Tokenizer, h *ContentHandler) {
+		if h.depthIgnoreable == 0 {
+			var skipWhitespace bool
 
-	h := NewContentHandler()
+			if h.lastEndTag != "" {
+				a := atom.Lookup([]byte(h.lastEndTag))
+				ta, ok := TagActionMap[a]
+				if ok {
+					switch ta.(type) {
+					case TagActionAnchor, TagActionInlineNoWhitespace:
+						skipWhitespace = true
+					}
+				}
+			}
 
+			if !skipWhitespace {
+				buf.WriteRune(' ')
+			}
+
+			buf.WriteString(string(z.Text()))
+		}
+	}
+
+	if _, err := parse(r, fn); err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
+}
+
+func parse(r io.Reader, fn func(z *html.Tokenizer, h *ContentHandler)) (h *ContentHandler, err error) {
+	h = NewContentHandler()
+
+	z := html.NewTokenizer(r)
 	for {
 		tt := z.Next()
 
 		switch tt {
 		case html.ErrorToken:
-			if z.Err() == io.EOF {
-				goto DONE
-			} else {
-				return "", z.Err()
+			if z.Err() != io.EOF {
+				err = z.Err()
 			}
+			return
 
 		case html.TextToken:
-			if h.depthIgnoreable == 0 {
-				var skipWhitespace bool
-
-				if h.lastEndTag != "" {
-					a := atom.Lookup([]byte(h.lastEndTag))
-					ta, ok := TagActionMap[a]
-					if ok {
-						switch ta.(type) {
-						case TagActionAnchor, TagActionInlineNoWhitespace:
-							skipWhitespace = true
-						}
-					}
-				}
-
-				if !skipWhitespace {
-					buf.WriteRune(' ')
-				}
-
-				buf.WriteString(string(z.Text()))
-			}
+			fn(z, h)
 
 		case html.StartTagToken:
 			h.StartElement(z)
@@ -275,6 +261,5 @@ func ParseText(r io.Reader) (string, error) {
 		}
 	}
 
-DONE:
-	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
+	return
 }
