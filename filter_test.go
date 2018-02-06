@@ -42,7 +42,7 @@ func ExampleArticlePipeline() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		NewArticlePipeline().Process(doc)
+		ArticlePipline.Process(doc)
 
 		// Log the document's title
 		fmt.Println(doc.Title)
@@ -94,27 +94,27 @@ func ExampleArticlePipeline() {
 }
 
 func TestStartsWithNumber(t *testing.T) {
-	startsWithNumber := func(text string) bool {
-		return StartsWithNumber(text, " comments", " users responded in")
+	testStartsWithNumber := func(text string) bool {
+		return startsWithNumber(text, " comments", " users responded in")
 	}
 
 	// True
-	if !startsWithNumber("123 comments") {
+	if !testStartsWithNumber("123 comments") {
 		t.Error("expected to start with number")
 	}
 
 	// True
-	if !startsWithNumber("456 users responded in") {
+	if !testStartsWithNumber("456 users responded in") {
 		t.Error("expected to start with number")
 	}
 
 	// False
-	if startsWithNumber("abc comments") {
+	if testStartsWithNumber("abc comments") {
 		t.Error("not expected to start with number")
 	}
 
 	// False
-	if startsWithNumber("def users responded in") {
+	if testStartsWithNumber("def users responded in") {
 		t.Error("not expected to start with number")
 	}
 }

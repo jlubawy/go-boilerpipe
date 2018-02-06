@@ -27,24 +27,22 @@ func (pipeline *Pipeline) Process(doc *Document) (hasChanged bool) {
 	return
 }
 
-func NewArticlePipeline() *Pipeline {
-	return &Pipeline{
-		PipelineName: "Article",
-		Filters: []Filter{
-			TerminatingBlocks(),
-			DocumentTitleMatchClassifier(),
-			NumWordsRulesClassifier(),
-			IgnoreBlocksAfterContent(),
-			TrailingHeadlineToBoilerplate(),
-			BlockProximityFusionMaxDistanceOne,
-			BoilerplateBlock(),
-			BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
-			KeepLargestBlocks(),
-			ExpandTitleToContent(),
-			LargeBlockSameTagLevelToContent(),
-			ListAtEnd(),
-		},
-	}
+var ArticlePipline = &Pipeline{
+	PipelineName: "Article",
+	Filters: []Filter{
+		TerminatingBlocks(),
+		DocumentTitleMatchClassifier(),
+		NumWordsRulesClassifier(),
+		IgnoreBlocksAfterContent(),
+		TrailingHeadlineToBoilerplate(),
+		blockProximityFusionMaxDistanceOne,
+		BoilerplateBlock(),
+		blockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
+		KeepLargestBlocks(),
+		ExpandTitleToContent(),
+		LargeBlockSameTagLevelToContent(),
+		ListAtEnd(),
+	},
 }
 
 // Filter is the interface that processes documents and notifies if it has
@@ -78,7 +76,7 @@ func (terminatingBlocks) Process(doc *Document) bool {
 				textLC := strings.ToLower(text)
 
 				if strings.HasPrefix(textLC, "comments") ||
-					StartsWithNumber(textLC, " comments", " users responded in") ||
+					startsWithNumber(textLC, " comments", " users responded in") ||
 					strings.HasPrefix(textLC, "© reuters") ||
 					strings.HasPrefix(textLC, "please rate this") ||
 					strings.HasPrefix(textLC, "post a comment") ||
@@ -91,13 +89,13 @@ func (terminatingBlocks) Process(doc *Document) bool {
 					strings.Contains(textLC, "rätta artikeln") ||
 					textLC == "thanks for your comments - this feedback is now closed" {
 
-					tb.AddLabel(LabelIndicatesEndOfText)
+					tb.AddLabel(labelIndicatesEndOfText)
 					hasChanged = true
 				}
 
 			} else if tb.LinkDensity == 1.0 {
 				if text == "Comment" {
-					tb.AddLabel(LabelIndicatesEndOfText)
+					tb.AddLabel(labelIndicatesEndOfText)
 				}
 			}
 		}
@@ -106,9 +104,9 @@ func (terminatingBlocks) Process(doc *Document) bool {
 	return hasChanged
 }
 
-// StartsWithNumber returns true if a string contains any of the prefixes
+// startsWithNumber returns true if a string contains any of the prefixes
 // after skipping over any digits.
-func StartsWithNumber(text string, prefixes ...string) bool {
+func startsWithNumber(text string, prefixes ...string) bool {
 	i := 0
 	for i < len(text) && isDigit(text[i]) {
 		i++
@@ -154,27 +152,27 @@ func (filter documentTitleMatchClassifier) Process(doc *Document) bool {
 
 	var pot string
 
-	pot = GetLongestPart(title, "[ ]*[\\|»|-][ ]*")
+	pot = getLongestPart(title, "[ ]*[\\|»|-][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = GetLongestPart(title, "[ ]*[\\|»|:][ ]*")
+	pot = getLongestPart(title, "[ ]*[\\|»|:][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = GetLongestPart(title, "[ ]*[\\|»|:\\(\\)][ ]*")
+	pot = getLongestPart(title, "[ ]*[\\|»|:\\(\\)][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = GetLongestPart(title, "[ ]*[\\|»|:\\(\\)\\-][ ]*")
+	pot = getLongestPart(title, "[ ]*[\\|»|:\\(\\)\\-][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = GetLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-][ ]*")
+	pot = getLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
-	pot = GetLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-\u00a0][ ]*")
+	pot = getLongestPart(title, "[ ]*[\\|»|,|:\\(\\)\\-\u00a0][ ]*")
 	if len(pot) > 0 {
 		potentialTitles[pot] = true
 	}
@@ -182,8 +180,8 @@ func (filter documentTitleMatchClassifier) Process(doc *Document) bool {
 	addPotentialTitles(potentialTitles, title, "[ ]+[\\|][ ]+", 4)
 	addPotentialTitles(potentialTitles, title, "[ ]+[\\-][ ]+", 4)
 
-	potentialTitles[RemoveFirst(title, " - [^\\-]+$")] = true
-	potentialTitles[RemoveFirst(title, "^[^\\-]+ - ")] = true
+	potentialTitles[removeFirst(title, " - [^\\-]+$")] = true
+	potentialTitles[removeFirst(title, "^[^\\-]+ - ")] = true
 
 	hasChanged := false
 
@@ -197,14 +195,14 @@ func (filter documentTitleMatchClassifier) Process(doc *Document) bool {
 		text = strings.ToLower(text)
 
 		if _, contains := potentialTitles[text]; contains {
-			tb.AddLabel(LabelTitle)
+			tb.AddLabel(labelTitle)
 			hasChanged = true
 			break
 		}
 
 		text = strings.TrimSpace(regexp.MustCompile("[\\?\\!\\.\\-\\:]+").ReplaceAllString(text, ""))
 		if _, contains := potentialTitles[text]; contains {
-			tb.AddLabel(LabelTitle)
+			tb.AddLabel(labelTitle)
 			hasChanged = true
 			break
 		}
@@ -213,7 +211,7 @@ func (filter documentTitleMatchClassifier) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func RemoveFirst(s string, pattern string) string {
+func removeFirst(s string, pattern string) string {
 	m := regexp.MustCompile(pattern).FindString(s)
 	if len(m) == 0 {
 		return s
@@ -239,7 +237,7 @@ func addPotentialTitles(potentialTitles map[string]bool, title string, pattern s
 	}
 }
 
-func GetLongestPart(title, pattern string) string {
+func getLongestPart(title, pattern string) string {
 	parts := regexp.MustCompile(pattern).Split(title, -1)
 	if len(parts) == 1 {
 		return ""
@@ -280,7 +278,7 @@ func (filter trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 		tb := doc.TextBlocks[i]
 
 		if tb.IsContent {
-			if tb.HasLabel(LabelHeading) {
+			if tb.HasLabel(labelHeading) {
 				tb.IsContent = false
 				hasChanged = true
 			} else {
@@ -293,10 +291,10 @@ func (filter trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 }
 
 var (
-	BlockProximityFusionMaxDistanceOne                        = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOne", 1, false, false}
-	BlockProximityFusionMaxDistanceOneSameTagLevel            = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOneSameTagLevel", 1, false, true}
-	BlockProximityFusionMaxDistanceOneContentOnly             = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOneContentOnly", 1, true, false}
-	BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel = &blockProximityFusionParams{"BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel", 1, true, true}
+	blockProximityFusionMaxDistanceOne                        = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOne", 1, false, false}
+	blockProximityFusionMaxDistanceOneSameTagLevel            = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOneSameTagLevel", 1, false, true}
+	blockProximityFusionMaxDistanceOneContentOnly             = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOneContentOnly", 1, true, false}
+	blockProximityFusionMaxDistanceOneContentOnlySameTagLevel = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOneContentOnlySameTagLevel", 1, true, true}
 )
 
 type blockProximityFusionParams struct {
@@ -319,7 +317,7 @@ func (filter *blockProximityFusionParams) Process(doc *Document) bool {
 	contentOnly := filter.contentOnly
 	sameTagLevelOnly := filter.sameTagLevelOnly
 
-	var prevBlock *TextBlock
+	var prevBlock *textBlock
 	startBlock := 0
 
 	if contentOnly {
@@ -393,7 +391,7 @@ func (filter boilerplateBlock) Process(doc *Document) bool {
 	for i := 0; i < len(doc.TextBlocks); i++ {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent == false && tb.HasLabel(LabelTitle) == false {
+		if tb.IsContent == false && tb.HasLabel(labelTitle) == false {
 			doc.TextBlocks = append(doc.TextBlocks[:i], doc.TextBlocks[i+1:]...)
 			i--
 			hasChanged = true
@@ -403,16 +401,16 @@ func (filter boilerplateBlock) Process(doc *Document) bool {
 	return hasChanged
 }
 
+const expandToSameTagLevelMinimumWords = 150
+
 func KeepLargestBlocks() Filter {
-	return keepLargestBlocks{true, ExpandToSameTagLevelMinimumWords}
+	return keepLargestBlocks{true, expandToSameTagLevelMinimumWords}
 }
 
 type keepLargestBlocks struct {
 	expandToSameLevelText bool
 	minWords              int
 }
-
-const ExpandToSameTagLevelMinimumWords = 150
 
 func (keepLargestBlocks) Name() string { return "KeepLargestBlocks" }
 
@@ -423,7 +421,7 @@ func (filter keepLargestBlocks) Process(doc *Document) bool {
 
 	var (
 		maxNumWords  = -1
-		largestBlock *TextBlock
+		largestBlock *textBlock
 		level        = -1
 		j            = 0
 		n            = -1
@@ -454,10 +452,10 @@ func (filter keepLargestBlocks) Process(doc *Document) bool {
 
 		if tb == largestBlock {
 			tb.IsContent = true
-			tb.AddLabel(LabelVeryLikelyContent)
+			tb.AddLabel(labelVeryLikelyContent)
 		} else {
 			tb.IsContent = isLargestBlock(maxNumWords, tb)
-			tb.AddLabel(LabelMightBeContent)
+			tb.AddLabel(labelMightBeContent)
 		}
 	}
 
@@ -494,7 +492,7 @@ func (filter keepLargestBlocks) Process(doc *Document) bool {
 	return true
 }
 
-func isLargestBlock(maxNumWords int, tb *TextBlock) bool {
+func isLargestBlock(maxNumWords int, tb *textBlock) bool {
 	var minWordPercent float64
 	switch {
 	case maxNumWords >= 1000:
@@ -520,7 +518,7 @@ func (filter keepLargestFulltextBlock) Process(doc *Document) bool {
 	}
 
 	max := -1
-	var largestBlock *TextBlock
+	var largestBlock *textBlock
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
@@ -547,7 +545,7 @@ func (filter keepLargestFulltextBlock) Process(doc *Document) bool {
 			tb.IsContent = true
 		} else {
 			tb.IsContent = false
-			tb.AddLabel(LabelMightBeContent)
+			tb.AddLabel(labelMightBeContent)
 		}
 	}
 
@@ -568,7 +566,7 @@ func (filter expandTitleToContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if contentStart == -1 && tb.HasLabel(LabelTitle) {
+		if contentStart == -1 && tb.HasLabel(labelTitle) {
 			title = j
 			contentStart = -1
 		}
@@ -588,7 +586,7 @@ func (filter expandTitleToContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks[title:contentStart] {
 		tb := doc.TextBlocks[i]
 
-		if tb.HasLabel(LabelMightBeContent) {
+		if tb.HasLabel(labelMightBeContent) {
 			hasChanged = (tb.IsContent == false) || hasChanged
 			tb.IsContent = true
 		}
@@ -610,7 +608,7 @@ func (filter largeBlockSameTagLevelToContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent && tb.HasLabel(LabelVeryLikelyContent) {
+		if tb.IsContent && tb.HasLabel(labelVeryLikelyContent) {
 			tagLevel = tb.TagLevel
 			break
 		}
@@ -634,13 +632,13 @@ func (filter largeBlockSameTagLevelToContent) Process(doc *Document) bool {
 	return hasChanged
 }
 
+const defaultMinNumberOfWords = 60
+
 func IgnoreBlocksAfterContent() Filter {
-	return ignoreBlocksAfterContent{DefaultMinNumberOfWords}
+	return ignoreBlocksAfterContent{defaultMinNumberOfWords}
 }
 
 type ignoreBlocksAfterContent struct{ minNumWords int }
-
-const DefaultMinNumberOfWords = 60
 
 func (ignoreBlocksAfterContent) Name() string { return "IgnoreBlocksAfterContent" }
 
@@ -652,7 +650,7 @@ func (filter ignoreBlocksAfterContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		eot := tb.HasLabel(LabelIndicatesEndOfText)
+		eot := tb.HasLabel(labelIndicatesEndOfText)
 
 		if tb.IsContent {
 			numWords += getNumFullTextWords(tb)
@@ -682,19 +680,19 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 		return false
 	}
 
-	prevBlock := TextBlockEmptyStart
+	prevBlock := textBlockEmptyStart
 	currentBlock := doc.TextBlocks[0]
-	var nextBlock *TextBlock
+	var nextBlock *textBlock
 
 	if len(doc.TextBlocks) >= 2 {
 		nextBlock = doc.TextBlocks[1]
 	} else {
-		nextBlock = TextBlockEmptyStart
+		nextBlock = textBlockEmptyStart
 	}
 
 	hasChanged = classify(prevBlock, currentBlock, nextBlock) || hasChanged
 
-	if nextBlock != TextBlockEmptyStart {
+	if nextBlock != textBlockEmptyStart {
 		for i := 3; i < len(doc.TextBlocks); i++ {
 			prevBlock = currentBlock
 			currentBlock = nextBlock
@@ -703,14 +701,14 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 		}
 		prevBlock = currentBlock
 		currentBlock = nextBlock
-		nextBlock = TextBlockEmptyEnd
+		nextBlock = textBlockEmptyEnd
 		hasChanged = classify(prevBlock, currentBlock, nextBlock) || hasChanged
 	}
 
 	return hasChanged
 }
 
-func classify(prev, curr, next *TextBlock) bool {
+func classify(prev, curr, next *textBlock) bool {
 	isContent := false
 
 	if curr.LinkDensity <= 0.333333 {
@@ -747,7 +745,7 @@ func classify(prev, curr, next *TextBlock) bool {
 	return isContent
 }
 
-func getNumFullTextWords(tb *TextBlock) int {
+func getNumFullTextWords(tb *textBlock) int {
 	minTextDensity := 9.0
 
 	if tb.TextDensity >= minTextDensity {
@@ -770,11 +768,11 @@ func (filter listAtEnd) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent && tb.HasLabel(LabelVeryLikelyContent) {
+		if tb.IsContent && tb.HasLabel(labelVeryLikelyContent) {
 			tagLevel = tb.TagLevel
 		} else {
-			if tb.TagLevel > tagLevel && tb.HasLabel(LabelMightBeContent) &&
-				tb.HasLabel(LabelList) && tb.LinkDensity == 0.0 {
+			if tb.TagLevel > tagLevel && tb.HasLabel(labelMightBeContent) &&
+				tb.HasLabel(labelList) && tb.LinkDensity == 0.0 {
 				tb.IsContent = true
 				hasChanged = true
 			} else {

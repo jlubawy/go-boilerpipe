@@ -18,7 +18,7 @@ const Version = "0.2.0"
 
 var reMultiSpace = regexp.MustCompile(`[\s]+`)
 
-type TextBlock struct {
+type textBlock struct {
 	Text string
 
 	OffsetBlocksStart int
@@ -35,14 +35,14 @@ type TextBlock struct {
 
 	IsContent bool
 
-	Labels map[Label]bool
+	Labels map[label]bool
 }
 
-var TextBlockEmptyStart = NewTextBlock("", 0, 0, 0, 0, math.MinInt32, 0)
-var TextBlockEmptyEnd = NewTextBlock("", 0, 0, 0, 0, math.MaxInt32, 0)
+var textBlockEmptyStart = newTextBlock("", 0, 0, 0, 0, math.MinInt32, 0)
+var textBlockEmptyEnd = newTextBlock("", 0, 0, 0, 0, math.MaxInt32, 0)
 
-func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrappedLines int, numWrappedLines int, offsetBlocks int, tagLevel int) *TextBlock {
-	tb := &TextBlock{
+func newTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrappedLines int, numWrappedLines int, offsetBlocks int, tagLevel int) *textBlock {
+	tb := &textBlock{
 		Text: text,
 		// TODO: currentContainedTextElements,
 		NumWords:               numWords,
@@ -53,7 +53,7 @@ func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrapp
 		OffsetBlocksEnd:        offsetBlocks,
 		TagLevel:               tagLevel,
 
-		Labels: make(map[Label]bool),
+		Labels: make(map[label]bool),
 	}
 
 	if numWordsInWrappedLines == 0 {
@@ -66,7 +66,7 @@ func NewTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrapp
 	return tb
 }
 
-func initDensities(tb *TextBlock) {
+func initDensities(tb *textBlock) {
 	tb.TextDensity = float64(tb.NumWordsInWrappedLines) / float64(tb.NumWrappedLines)
 	if tb.NumWords == 0 {
 		tb.LinkDensity = 0.0
@@ -75,38 +75,38 @@ func initDensities(tb *TextBlock) {
 	}
 }
 
-type Label string
+type label string
 
 const (
-	LabelIndicatesEndOfText Label = "IndicatesEndOfText"
-	LabelMightBeContent           = "MightBeContent"
-	LabelVeryLikelyContent        = "VeryLikelyContent"
-	LabelTitle                    = "Title"
-	LabelList                     = "List"
-	LabelHeading                  = "Heading"
-	LabelHeading1                 = "Heading1"
-	LabelHeading2                 = "Heading2"
-	LabelHeading3                 = "Heading3"
+	labelIndicatesEndOfText label = "IndicatesEndOfText"
+	labelMightBeContent           = "MightBeContent"
+	labelVeryLikelyContent        = "VeryLikelyContent"
+	labelTitle                    = "Title"
+	labelList                     = "List"
+	labelHeading                  = "Heading"
+	labelHeading1                 = "Heading1"
+	labelHeading2                 = "Heading2"
+	labelHeading3                 = "Heading3"
 )
 
-func (tb *TextBlock) AddLabel(label Label) *TextBlock {
+func (tb *textBlock) AddLabel(label label) *textBlock {
 	tb.Labels[label] = true
 	return tb
 }
 
-func (tb *TextBlock) AddLabels(labels ...Label) *TextBlock {
+func (tb *textBlock) AddLabels(labels ...label) *textBlock {
 	for _, label := range labels {
 		tb.AddLabel(label)
 	}
 	return tb
 }
 
-func (tb *TextBlock) HasLabel(label Label) bool {
+func (tb *textBlock) HasLabel(label label) bool {
 	_, hasLabel := tb.Labels[label]
 	return hasLabel
 }
 
-func (tb *TextBlock) MergeNext(next *TextBlock) {
+func (tb *textBlock) MergeNext(next *textBlock) {
 	buf := bytes.NewBufferString(tb.Text)
 	buf.WriteRune('\n')
 	buf.WriteString(next.Text)
@@ -143,13 +143,13 @@ type Document struct {
 	Title string
 	Date  time.Time
 
-	TextBlocks []*TextBlock
+	TextBlocks []*textBlock
 	errs       []error
 }
 
 func ParseDocument(r io.Reader) (doc *Document, err error) {
-	var h *ContentHandler
-	h, err = parse(r, func(z *html.Tokenizer, h *ContentHandler) {
+	var h *contentHandler
+	h, err = parse(r, func(z *html.Tokenizer, h *contentHandler) {
 		h.TextToken(z)
 	})
 	if err != nil {
@@ -203,16 +203,16 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 
 func ParseText(r io.Reader) (string, error) {
 	buf := &bytes.Buffer{}
-	fn := func(z *html.Tokenizer, h *ContentHandler) {
+	fn := func(z *html.Tokenizer, h *contentHandler) {
 		if h.depthIgnoreable == 0 {
 			var skipWhitespace bool
 
 			if h.lastEndTag != "" {
 				a := atom.Lookup([]byte(h.lastEndTag))
-				ta, ok := TagActionMap[a]
+				ta, ok := tagActionMap[a]
 				if ok {
 					switch ta.(type) {
-					case TagActionAnchor, TagActionInlineNoWhitespace:
+					case *tagActionAnchor, *tagActionInlineNoWhitespace:
 						skipWhitespace = true
 					}
 				}
@@ -233,8 +233,8 @@ func ParseText(r io.Reader) (string, error) {
 	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
 }
 
-func parse(r io.Reader, fn func(z *html.Tokenizer, h *ContentHandler)) (h *ContentHandler, err error) {
-	h = NewContentHandler()
+func parse(r io.Reader, fn func(z *html.Tokenizer, h *contentHandler)) (h *contentHandler, err error) {
+	h = newContentHandler()
 
 	z := html.NewTokenizer(r)
 	for {
