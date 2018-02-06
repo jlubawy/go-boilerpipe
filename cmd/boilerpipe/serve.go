@@ -122,7 +122,7 @@ func extractHandler(w http.ResponseWriter, req *http.Request) (int, error) {
 	defer rc.Close()
 
 	pipelineFilter := &LoggingPipeline{
-		Pipeline:   boilerpipe.NewArticlePipeline(),
+		Pipeline:   boilerpipe.ArticlePipline,
 		LogEntries: make([]LogEntry, 0),
 	}
 

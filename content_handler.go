@@ -14,22 +14,22 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-type AtomStack struct {
+type atomStack struct {
 	s []atom.Atom
 }
 
-func NewAtomStack() *AtomStack {
-	return &AtomStack{
+func newAtomStack() *atomStack {
+	return &atomStack{
 		s: make([]atom.Atom, 0),
 	}
 }
 
-func (stack *AtomStack) Push(a atom.Atom) *AtomStack {
+func (stack *atomStack) Push(a atom.Atom) *atomStack {
 	stack.s = append(stack.s, a)
 	return stack
 }
 
-func (stack *AtomStack) Pop() atom.Atom {
+func (stack *atomStack) Pop() atom.Atom {
 	if len(stack.s) == 0 {
 		return atom.Atom(0)
 	}
@@ -43,7 +43,7 @@ const (
 	anchorTextEnd   = ">\ue00a$"
 )
 
-type ContentHandler struct {
+type contentHandler struct {
 	title string
 	time  time.Time
 
@@ -60,7 +60,7 @@ type ContentHandler struct {
 	sbLastWasWhitespace bool
 	textElementIndex    int
 
-	textBlocks []*TextBlock
+	textBlocks []*textBlock
 
 	lastStartTag string
 	lastEndTag   string
@@ -76,32 +76,32 @@ type ContentHandler struct {
 
 	errs []error
 
-	atomStack *AtomStack
+	atomStack *atomStack
 }
 
-func NewContentHandler() *ContentHandler {
-	return &ContentHandler{
+func newContentHandler() *contentHandler {
+	return &contentHandler{
 		tokenBuffer: &bytes.Buffer{},
 		textBuffer:  &bytes.Buffer{},
 
 		depthBlockTag: -1,
 
-		textBlocks: make([]*TextBlock, 0),
+		textBlocks: make([]*textBlock, 0),
 
 		labelStacks: list.New(),
 
 		errs: make([]error, 0),
 
-		atomStack: NewAtomStack(),
+		atomStack: newAtomStack(),
 	}
 }
 
-func (h *ContentHandler) Errors() []error {
+func (h *contentHandler) Errors() []error {
 	return h.errs
 }
 
-func (h *ContentHandler) String() string {
-	return fmt.Sprintf("ContentHandler{ len(textBlocks): %d, tokenBuffer.Len(): %d, textBuffer.Len(): %d, depthBody: %d, depthAnchor: %d, depthIgnoreable: %d, depthTag: %d, depthBlockTag: %d, sbLastWasWhitespace: %t, textElementIndex: %d, lastStartTag: %s, lastEndTag: %s, offsetBlocks: %d, flush: %t, inAnchorText: %t }",
+func (h *contentHandler) String() string {
+	return fmt.Sprintf("contentHandler{ len(textBlocks): %d, tokenBuffer.Len(): %d, textBuffer.Len(): %d, depthBody: %d, depthAnchor: %d, depthIgnoreable: %d, depthTag: %d, depthBlockTag: %d, sbLastWasWhitespace: %t, textElementIndex: %d, lastStartTag: %s, lastEndTag: %s, offsetBlocks: %d, flush: %t, inAnchorText: %t }",
 		len(h.textBlocks),
 		h.tokenBuffer.Len(),
 		h.textBuffer.Len(),
@@ -119,7 +119,7 @@ func (h *ContentHandler) String() string {
 		h.inAnchorText)
 }
 
-func (h *ContentHandler) StartElement(z *html.Tokenizer) {
+func (h *contentHandler) StartElement(z *html.Tokenizer) {
 	h.labelStacks.PushBack(nil)
 
 	tn, _ := z.TagName()
@@ -127,10 +127,10 @@ func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 
 	h.atomStack.Push(a)
 
-	ta, ok := TagActionMap[a]
+	ta, ok := tagActionMap[a]
 	if ok {
 		switch ta.(type) {
-		case TagActionTime:
+		case *tagActionTime:
 			for {
 				key, val, _ := z.TagAttr()
 				if key == nil {
@@ -161,7 +161,7 @@ func (h *ContentHandler) StartElement(z *html.Tokenizer) {
 
 }
 
-func (h *ContentHandler) EndElement(z *html.Tokenizer) {
+func (h *contentHandler) EndElement(z *html.Tokenizer) {
 	tn, _ := z.TagName()
 	a := atom.Lookup(tn)
 
@@ -170,7 +170,7 @@ func (h *ContentHandler) EndElement(z *html.Tokenizer) {
 		return // malformed HTML, missing closing tag
 	}
 
-	ta, ok := TagActionMap[a]
+	ta, ok := tagActionMap[a]
 	if ok {
 		h.flush = ta.End(h) || h.flush
 	} else {
@@ -217,7 +217,7 @@ func (sr *spaceRemover) getSpaceRemovalFunc() func(rune) rune {
 	}
 }
 
-func (h *ContentHandler) TextToken(z *html.Tokenizer) {
+func (h *contentHandler) TextToken(z *html.Tokenizer) {
 	h.textElementIndex++
 
 	if h.flush {
@@ -283,7 +283,7 @@ func isWord(tok string) bool {
 	return reValidWordCharacter.MatchString(tok)
 }
 
-func (h *ContentHandler) FlushBlock() {
+func (h *contentHandler) FlushBlock() {
 	if h.depthBody == 0 {
 		if h.lastStartTag == atom.Title.String() {
 			title := strings.TrimSpace(h.tokenBuffer.String())
@@ -365,7 +365,7 @@ func (h *ContentHandler) FlushBlock() {
 	text := strings.TrimSpace(h.textBuffer.String())
 
 	if len(text) > 0 {
-		h.addTextBlock(NewTextBlock(
+		h.addTextBlock(newTextBlock(
 			text,
 			numWords,
 			numLinkedWords,
@@ -384,7 +384,7 @@ func (h *ContentHandler) FlushBlock() {
 	h.depthBlockTag = -1
 }
 
-func (h *ContentHandler) addTextBlock(tb *TextBlock) {
+func (h *contentHandler) addTextBlock(tb *textBlock) {
 	// TODO:
 	//for (Integer l : fontSizeStack) {
 	//  if (l != null) {
@@ -399,7 +399,7 @@ func (h *ContentHandler) addTextBlock(tb *TextBlock) {
 
 			for e1 := labelStack.Back(); e1 != nil; e1 = e1.Prev() {
 				if e1.Value != nil {
-					labelActions := e1.Value.(*LabelAction)
+					labelActions := e1.Value.(*labelAction)
 					labelActions.AddTo(tb)
 				}
 			}
@@ -409,7 +409,7 @@ func (h *ContentHandler) addTextBlock(tb *TextBlock) {
 	h.textBlocks = append(h.textBlocks, tb)
 }
 
-func (h *ContentHandler) addWhitespaceIfNecessary() {
+func (h *contentHandler) addWhitespaceIfNecessary() {
 	if h.sbLastWasWhitespace == false {
 		h.tokenBuffer.WriteRune(' ')
 		h.textBuffer.WriteRune(' ')
@@ -417,7 +417,7 @@ func (h *ContentHandler) addWhitespaceIfNecessary() {
 	}
 }
 
-func (h *ContentHandler) addLabelAction(la *LabelAction) {
+func (h *contentHandler) addLabelAction(la *labelAction) {
 	var labelStack *list.List
 	el := h.labelStacks.Back()
 
@@ -432,29 +432,29 @@ func (h *ContentHandler) addLabelAction(la *LabelAction) {
 	labelStack.PushBack(la)
 }
 
-type TagAction interface {
-	Start(*ContentHandler) bool
-	End(*ContentHandler) bool
+type tagAction interface {
+	Start(*contentHandler) bool
+	End(*contentHandler) bool
 	ChangesTagLevel() bool
 }
 
-type TagActionIgnorable struct{}
+type tagActionIgnorable struct{}
 
-func (ta TagActionIgnorable) Start(h *ContentHandler) bool {
+func (ta *tagActionIgnorable) Start(h *contentHandler) bool {
 	h.depthIgnoreable++
 	return true
 }
 
-func (TagActionIgnorable) End(h *ContentHandler) bool {
+func (*tagActionIgnorable) End(h *contentHandler) bool {
 	h.depthIgnoreable--
 	return true
 }
 
-func (TagActionIgnorable) ChangesTagLevel() bool { return true }
+func (*tagActionIgnorable) ChangesTagLevel() bool { return true }
 
-type TagActionAnchor struct{}
+type tagActionAnchor struct{}
 
-func (ta TagActionAnchor) Start(h *ContentHandler) bool {
+func (ta *tagActionAnchor) Start(h *contentHandler) bool {
 	if h.depthAnchor > 0 {
 		h.errs = append(h.errs, errors.New("input contains nested <a> elements"))
 		return false
@@ -472,7 +472,7 @@ func (ta TagActionAnchor) Start(h *ContentHandler) bool {
 	return false
 }
 
-func (TagActionAnchor) End(h *ContentHandler) bool {
+func (*tagActionAnchor) End(h *contentHandler) bool {
 	if h.depthAnchor == 0 {
 		h.errs = append(h.errs, errors.New("input contains unopened </a> element"))
 		return false
@@ -492,130 +492,130 @@ func (TagActionAnchor) End(h *ContentHandler) bool {
 	return false
 }
 
-func (TagActionAnchor) ChangesTagLevel() bool { return true }
+func (*tagActionAnchor) ChangesTagLevel() bool { return true }
 
-type TagActionBody struct{}
+type tagActionBody struct{}
 
-func (ta TagActionBody) Start(h *ContentHandler) bool {
+func (ta *tagActionBody) Start(h *contentHandler) bool {
 	h.FlushBlock()
 	h.depthBody++
 	return false
 }
-func (TagActionBody) End(h *ContentHandler) bool {
+func (*tagActionBody) End(h *contentHandler) bool {
 	h.FlushBlock()
 	h.depthBody--
 	return false
 }
 
-func (TagActionBody) ChangesTagLevel() bool { return true }
+func (*tagActionBody) ChangesTagLevel() bool { return true }
 
-type TagActionInlineWhitespace struct{}
+type tagActionInlineWhitespace struct{}
 
-func (ta TagActionInlineWhitespace) Start(h *ContentHandler) bool {
+func (ta *tagActionInlineWhitespace) Start(h *contentHandler) bool {
 	h.addWhitespaceIfNecessary()
 	return false
 }
 
-func (TagActionInlineWhitespace) End(h *ContentHandler) bool {
+func (*tagActionInlineWhitespace) End(h *contentHandler) bool {
 	h.addWhitespaceIfNecessary()
 	return false
 }
 
-func (TagActionInlineWhitespace) ChangesTagLevel() bool { return false }
+func (*tagActionInlineWhitespace) ChangesTagLevel() bool { return false }
 
-type TagActionInlineNoWhitespace struct{}
+type tagActionInlineNoWhitespace struct{}
 
-func (TagActionInlineNoWhitespace) Start(h *ContentHandler) bool { return false }
-func (TagActionInlineNoWhitespace) End(h *ContentHandler) bool   { return false }
-func (TagActionInlineNoWhitespace) ChangesTagLevel() bool        { return false }
+func (*tagActionInlineNoWhitespace) Start(h *contentHandler) bool { return false }
+func (*tagActionInlineNoWhitespace) End(h *contentHandler) bool   { return false }
+func (*tagActionInlineNoWhitespace) ChangesTagLevel() bool        { return false }
 
-type TagActionBlockTagLabel struct{ labelAction *LabelAction }
+type tagActionBlockTagLabel struct{ labelAction *labelAction }
 
-func (ta TagActionBlockTagLabel) Start(h *ContentHandler) bool {
+func (ta *tagActionBlockTagLabel) Start(h *contentHandler) bool {
 	h.addLabelAction(ta.labelAction)
 	return true
 }
-func (TagActionBlockTagLabel) End(h *ContentHandler) bool { return true }
-func (TagActionBlockTagLabel) ChangesTagLevel() bool      { return true }
+func (*tagActionBlockTagLabel) End(h *contentHandler) bool { return true }
+func (*tagActionBlockTagLabel) ChangesTagLevel() bool      { return true }
 
-type TagActionIgnoreableVoid struct{}
+type tagActionIgnoreableVoid struct{}
 
-func (TagActionIgnoreableVoid) Start(h *ContentHandler) bool { return false }
-func (TagActionIgnoreableVoid) End(h *ContentHandler) bool   { return false }
-func (TagActionIgnoreableVoid) ChangesTagLevel() bool        { return false }
+func (*tagActionIgnoreableVoid) Start(h *contentHandler) bool { return false }
+func (*tagActionIgnoreableVoid) End(h *contentHandler) bool   { return false }
+func (*tagActionIgnoreableVoid) ChangesTagLevel() bool        { return false }
 
-type TagActionTime struct{}
+type tagActionTime struct{}
 
-func (TagActionTime) Start(h *ContentHandler) bool { return true }
-func (TagActionTime) End(h *ContentHandler) bool   { return true }
-func (TagActionTime) ChangesTagLevel() bool        { return true }
+func (*tagActionTime) Start(h *contentHandler) bool { return true }
+func (*tagActionTime) End(h *contentHandler) bool   { return true }
+func (*tagActionTime) ChangesTagLevel() bool        { return true }
 
-// From DefaultTagActionMap.java
-var TagActionMap = map[atom.Atom]TagAction{
-	atom.Applet:     TagActionIgnorable{},
-	atom.Figcaption: TagActionIgnorable{},
-	atom.Figure:     TagActionIgnorable{},
-	atom.Noscript:   TagActionIgnorable{},
-	atom.Object:     TagActionIgnorable{},
-	atom.Option:     TagActionIgnorable{},
-	atom.Script:     TagActionIgnorable{},
-	atom.Style:      TagActionIgnorable{},
+// From DefaulttagActionMap.java
+var tagActionMap = map[atom.Atom]tagAction{
+	atom.Applet:     &tagActionIgnorable{},
+	atom.Figcaption: &tagActionIgnorable{},
+	atom.Figure:     &tagActionIgnorable{},
+	atom.Noscript:   &tagActionIgnorable{},
+	atom.Object:     &tagActionIgnorable{},
+	atom.Option:     &tagActionIgnorable{},
+	atom.Script:     &tagActionIgnorable{},
+	atom.Style:      &tagActionIgnorable{},
 
-	atom.A: TagActionAnchor{},
+	atom.A: &tagActionAnchor{},
 
-	atom.Body: TagActionBody{},
+	atom.Body: &tagActionBody{},
 
-	atom.Abbr: TagActionInlineWhitespace{},
+	atom.Abbr: &tagActionInlineWhitespace{},
 	// no atom.Acronym
 
-	atom.B:      TagActionInlineNoWhitespace{},
-	atom.Code:   TagActionInlineNoWhitespace{},
-	atom.Em:     TagActionInlineNoWhitespace{},
-	atom.Font:   TagActionInlineNoWhitespace{}, // can also use TA_FONT
-	atom.I:      TagActionInlineNoWhitespace{},
-	atom.Span:   TagActionInlineNoWhitespace{},
-	atom.Strike: TagActionInlineNoWhitespace{},
-	atom.Strong: TagActionInlineNoWhitespace{},
-	atom.Sub:    TagActionInlineNoWhitespace{},
-	atom.Sup:    TagActionInlineNoWhitespace{},
-	atom.Tt:     TagActionInlineNoWhitespace{},
-	atom.U:      TagActionInlineNoWhitespace{},
-	atom.Var:    TagActionInlineNoWhitespace{},
+	atom.B:      &tagActionInlineNoWhitespace{},
+	atom.Code:   &tagActionInlineNoWhitespace{},
+	atom.Em:     &tagActionInlineNoWhitespace{},
+	atom.Font:   &tagActionInlineNoWhitespace{}, // can also use TA_FONT
+	atom.I:      &tagActionInlineNoWhitespace{},
+	atom.Span:   &tagActionInlineNoWhitespace{},
+	atom.Strike: &tagActionInlineNoWhitespace{},
+	atom.Strong: &tagActionInlineNoWhitespace{},
+	atom.Sub:    &tagActionInlineNoWhitespace{},
+	atom.Sup:    &tagActionInlineNoWhitespace{},
+	atom.Tt:     &tagActionInlineNoWhitespace{},
+	atom.U:      &tagActionInlineNoWhitespace{},
+	atom.Var:    &tagActionInlineNoWhitespace{},
 
-	atom.Li: TagActionBlockTagLabel{NewLabelAction(LabelList)},
-	atom.H1: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading1)},
-	atom.H2: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading2)},
-	atom.H3: TagActionBlockTagLabel{NewLabelAction(LabelHeading, LabelHeading3)},
+	atom.Li: &tagActionBlockTagLabel{newLabelAction(labelList)},
+	atom.H1: &tagActionBlockTagLabel{newLabelAction(labelHeading, labelHeading1)},
+	atom.H2: &tagActionBlockTagLabel{newLabelAction(labelHeading, labelHeading2)},
+	atom.H3: &tagActionBlockTagLabel{newLabelAction(labelHeading, labelHeading3)},
 
-	atom.Area:     TagActionIgnoreableVoid{},
-	atom.Base:     TagActionIgnoreableVoid{},
-	atom.Br:       TagActionIgnoreableVoid{},
-	atom.Col:      TagActionIgnoreableVoid{},
-	atom.Embed:    TagActionIgnoreableVoid{},
-	atom.Hr:       TagActionIgnoreableVoid{},
-	atom.Img:      TagActionIgnoreableVoid{},
-	atom.Input:    TagActionIgnoreableVoid{},
-	atom.Link:     TagActionIgnoreableVoid{},
-	atom.Menuitem: TagActionIgnoreableVoid{},
-	atom.Meta:     TagActionIgnoreableVoid{},
-	atom.Param:    TagActionIgnoreableVoid{},
-	atom.Source:   TagActionIgnoreableVoid{},
-	atom.Track:    TagActionIgnoreableVoid{},
-	atom.Wbr:      TagActionIgnoreableVoid{},
+	atom.Area:     &tagActionIgnoreableVoid{},
+	atom.Base:     &tagActionIgnoreableVoid{},
+	atom.Br:       &tagActionIgnoreableVoid{},
+	atom.Col:      &tagActionIgnoreableVoid{},
+	atom.Embed:    &tagActionIgnoreableVoid{},
+	atom.Hr:       &tagActionIgnoreableVoid{},
+	atom.Img:      &tagActionIgnoreableVoid{},
+	atom.Input:    &tagActionIgnoreableVoid{},
+	atom.Link:     &tagActionIgnoreableVoid{},
+	atom.Menuitem: &tagActionIgnoreableVoid{},
+	atom.Meta:     &tagActionIgnoreableVoid{},
+	atom.Param:    &tagActionIgnoreableVoid{},
+	atom.Source:   &tagActionIgnoreableVoid{},
+	atom.Track:    &tagActionIgnoreableVoid{},
+	atom.Wbr:      &tagActionIgnoreableVoid{},
 
-	atom.Time: TagActionTime{},
+	atom.Time: &tagActionTime{},
 }
 
-type LabelAction struct{ labels []Label }
+type labelAction struct{ labels []label }
 
-func NewLabelAction(labels ...Label) *LabelAction {
-	la := &LabelAction{
-		labels: make([]Label, 0),
+func newLabelAction(labels ...label) *labelAction {
+	la := &labelAction{
+		labels: make([]label, 0),
 	}
 	la.labels = append(la.labels, labels...)
 	return la
 }
 
-func (la *LabelAction) AddTo(tb *TextBlock) {
+func (la *labelAction) AddTo(tb *textBlock) {
 	tb.AddLabels(la.labels...)
 }
