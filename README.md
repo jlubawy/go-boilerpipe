@@ -7,13 +7,21 @@ Java library written by Christian Kohlschütter_
 
 Boilerpipe removes boilerplate and extracts text content from HTML documents.
 
-Currently it only supports article extraction which includes the title, a
-normalized URL, the date, and the content.
+Currently it only supports article extraction which includes the title,
+the date, and the content.
+
+Best attempts will be made to follow [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html#semantic-versioning-200) rules,
+but no API guarantees will be made until version 1.0.0.
+
+However, existing tags will not change guaranteeing that [vendoring](https://semver.org/spec/v2.0.0.html#semantic-versioning-200) will not break.
 
 
-## Command-line
+## Getting Started
 
-To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
+To install: ```go get -u github.com/jlubawy/go-boilerpipe/...```
+
+
+## Command-Line Tool
 
     $ boilerpipe help
 
@@ -34,4 +42,4 @@ To install ```go get -u github.com/jlubawy/go-boilerpipe/...```
 
 ## Using the library
 
-See examples in [boilerpipe_test.go](boilerpipe_test.go).
+See examples in [filter_test.go](filter_test.go).

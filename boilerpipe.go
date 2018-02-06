@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/jlubawy/go-boilerpipe/normurl"
-
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
+
+// Version is the version of the boilerpipe package.
+const Version = "0.2.0"
 
 type TextBlock struct {
 	Text string
@@ -139,27 +139,19 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 
 type Document struct {
 	Title string
-	URL   *normurl.URL
 	Date  time.Time
 
 	TextBlocks []*TextBlock
 	errs       []error
 }
 
-func NewDocument(r io.Reader, u *url.URL) (doc *Document, err error) {
-	z := html.NewTokenizer(r)
+func ParseDocument(r io.Reader) (doc *Document, err error) {
+	var (
+		z = html.NewTokenizer(r)
+		h = NewContentHandler()
+	)
 
-	h := NewContentHandler()
-
-	doc = &Document{}
-
-	if u != nil {
-		doc.URL = normurl.NewURL(u, nil)
-
-		if d, exists := doc.URL.Date(); exists {
-			doc.Date = d
-		}
-	}
+	doc = new(Document)
 
 	for {
 		tt := z.Next()
@@ -211,60 +203,6 @@ func (doc *Document) Content() string {
 	return doc.Text(true, false)
 }
 
-func (doc *Document) HTML() string {
-	buf := &bytes.Buffer{}
-
-	startP := true
-	data := []byte(doc.Content())
-	for i := int64(0); i < int64(len(data)); i++ {
-		if startP {
-			buf.WriteString("<p>")
-			startP = false
-		}
-
-		if data[i] == '\n' {
-			buf.WriteString("</p>")
-			startP = true
-		} else {
-			buf.WriteByte(data[i])
-		}
-	}
-
-	return buf.String()
-}
-
-type TextDocument struct {
-	Title   string    `json:"title"`
-	URL     string    `json:"url"`
-	Date    time.Time `json:"date"`
-	Content string    `json:"content"`
-}
-
-func (doc *Document) GetTextDocument() *TextDocument {
-	return &TextDocument{
-		Title:   doc.Title,
-		URL:     doc.URL.String(),
-		Date:    doc.Date,
-		Content: doc.Content(),
-	}
-}
-
-type HTMLDocument struct {
-	Title   string    `json:"title"`
-	URL     string    `json:"url"`
-	Date    time.Time `json:"date"`
-	Content string    `json:"content"`
-}
-
-func (doc *Document) GetHTMLDocument() *HTMLDocument {
-	return &HTMLDocument{
-		Title:   doc.Title,
-		URL:     doc.URL.String(),
-		Date:    doc.Date,
-		Content: doc.HTML(),
-	}
-}
-
 func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	buf := &bytes.Buffer{}
 
@@ -287,7 +225,7 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 
 var reMultiSpace = regexp.MustCompile(`[\s]+`)
 
-func ExtractText(r io.Reader) (string, error) {
+func ParseText(r io.Reader) (string, error) {
 	z := html.NewTokenizer(r)
 	buf := &bytes.Buffer{}
 

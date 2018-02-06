@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"go/build"
 	"os"
+	"runtime"
 	"text/template"
 
 	"github.com/jlubawy/go-boilerpipe"
@@ -87,7 +89,7 @@ func fatalf(format string, args ...interface{}) {
 var commandVersion = &Command{
 	Description: "print boilerpipe version",
 	CommandFunc: func(args []string) {
-		fmt.Fprintln(os.Stderr, boilerpipe.FullVersion)
+		fmt.Fprintf(os.Stderr, "boilerpipe %s %s/%s/%s", boilerpipe.Version, runtime.GOARCH, runtime.GOOS, build.Default.ReleaseTags[len(build.Default.ReleaseTags)-1])
 	},
 	HelpFunc: func() {
 		fmt.Fprintf(os.Stderr, `usage: boilerpipe version

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jlubawy/go-boilerpipe"
+	"github.com/jlubawy/go-boilerpipe/normurl"
 )
 
 var commandServe = &Command{
@@ -108,7 +110,7 @@ func extractHandler(w http.ResponseWriter, req *http.Request) (int, error) {
 		return http.StatusBadRequest, errors.New("Must specify url.")
 	}
 
-	u, err := url.Parse(rawurl)
+	u, err := normurl.Parse(rawurl)
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
@@ -124,24 +126,47 @@ func extractHandler(w http.ResponseWriter, req *http.Request) (int, error) {
 		LogEntries: make([]LogEntry, 0),
 	}
 
-	doc, err := boilerpipe.NewDocument(rc, u)
+	doc, err := boilerpipe.ParseDocument(rc)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
 	pipelineFilter.Process(doc)
 
 	data := map[string]interface{}{
-		"Content":        htemp.HTML(doc.HTML()),
+		"Content":        StringToHTML(doc.Content()),
 		"Date":           doc.Date.Format("January 2, 2006"),
 		"Doc":            doc,
 		"pipelineFilter": pipelineFilter,
 		"RawURL":         rawurl,
+		"url":            u.String(),
 	}
 	if err := Execute("extract", w, data); err != nil {
 		panic(err)
 	}
 
 	return http.StatusOK, nil
+}
+
+func StringToHTML(s string) htemp.HTML {
+	buf := &bytes.Buffer{}
+
+	startP := true
+	data := []byte(s)
+	for i := int64(0); i < int64(len(data)); i++ {
+		if startP {
+			buf.WriteString("<p>")
+			startP = false
+		}
+
+		if data[i] == '\n' {
+			buf.WriteString("</p>")
+			startP = true
+		} else {
+			buf.WriteByte(data[i])
+		}
+	}
+
+	return htemp.HTML(buf.String())
 }
 
 type LogEntry struct {
@@ -278,7 +303,7 @@ var templStrs = map[string]string{
         <dd class="col-sm-11">{{.Date}}</dd>
 
         <dt class="col-sm-1">URL</dt>
-        <dd class="col-sm-11">{{.Doc.URL}}</dd>
+        <dd class="col-sm-11">{{.url}}</dd>
 
         <dt class="col-sm-1">Content</dt>
         <dd class="col-sm-11">{{.Content}}</dd>

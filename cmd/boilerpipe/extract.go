@@ -9,16 +9,15 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"os"
 
 	"github.com/jlubawy/go-boilerpipe"
+	"github.com/jlubawy/go-boilerpipe/normurl"
 
 	"golang.org/x/net/publicsuffix"
 )
 
 var (
-	FlagTest        bool
 	FlagPrettyPrint bool
 )
 
@@ -31,7 +30,6 @@ var commandExtract = &Command{
 func extractFunc(args []string) {
 	flagset := flag.NewFlagSet("", flag.ExitOnError)
 	flagset.Usage = extractHelpFunc
-	flagset.BoolVar(&FlagTest, "test", false, "output JSON document for extractor_test.go")
 	flagset.BoolVar(&FlagPrettyPrint, "pretty-print", false, "pretty print JSON output")
 	flagset.Parse(args)
 
@@ -43,7 +41,7 @@ func extractFunc(args []string) {
 
 	var (
 		r io.Reader
-		u *url.URL
+		u *normurl.URL
 	)
 
 	if argDocumentPath == "" {
@@ -65,7 +63,7 @@ func extractFunc(args []string) {
 		} else {
 			// Else it's likely a URL
 			var err error
-			u, err = url.Parse(argDocumentPath)
+			u, err = normurl.Parse(argDocumentPath)
 			if err != nil {
 				fatalf("Error parsing URL: %v\n", err)
 			}
@@ -106,7 +104,7 @@ func httpGet(urlStr string) (io.ReadCloser, error) {
 	return resp.Body, nil
 }
 
-func extract(r io.Reader, u *url.URL) {
+func extract(r io.Reader, u *normurl.URL) {
 	// Read all to buffer
 	buf := &bytes.Buffer{}
 	if _, err := buf.ReadFrom(r); err != nil {
@@ -117,49 +115,30 @@ func extract(r io.Reader, u *url.URL) {
 	bytesReader := bytes.NewReader(d)
 
 	// Get text document and extract content
-	doc, err := boilerpipe.NewDocument(bytesReader, u)
+	doc, err := boilerpipe.ParseDocument(bytesReader)
 	if err != nil {
 		fatalf("Error creating new document: %v\n", err)
 	}
 	boilerpipe.NewArticlePipeline().Process(doc)
-
-	var v interface{}
-	if FlagTest {
-		m := make(map[string]interface{})
-
-		if u != nil {
-			m["url"] = u.String()
-		} else {
-			m["url"] = ""
-		}
-		m["document"] = d
-		m["results"] = doc.GetHTMLDocument()
-		v = m
-	} else {
-		v = doc
-	}
 
 	enc := json.NewEncoder(os.Stdout)
 	if FlagPrettyPrint {
 		enc.SetIndent("", "  ")
 	}
 
-	if err := enc.Encode(v); err != nil {
+	if err := enc.Encode(doc); err != nil {
 		fatalf("Error encoding JSON: %v\n", err)
 	}
 }
 
 func extractHelpFunc() {
-	fmt.Fprint(os.Stderr, `usage: boilerpipe extract [-test=false] [document path]
+	fmt.Fprint(os.Stderr, `usage: boilerpipe extract [document path]
 
 Extract extracts text from the provided HTML document and prints the results to
 stdout.
 
 If no argument is provided the document is read from stdin, else the argument is
 parsed first as a URL and then a filename.
-
-If -test=true a JSON document is output for the purpose of being used by extractor_test.go.
-A URL should be provided as the input document so that a date can be extracted if possible.
 `)
 	os.Exit(1)
 }
