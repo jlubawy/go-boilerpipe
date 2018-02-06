@@ -3,7 +3,7 @@
 _Golang port of the [boilerpipe](https://github.com/kohlschutter/boilerpipe)
 Java library written by Christian Kohlschütter_
 
-[![GoDoc](https://godoc.org/github.com/jlubawy/go-boilerpipe?status.svg)](https://godoc.org/github.com/jlubawy/go-boilerpipe)
+[![Build Status](https://travis-ci.org/jlubawy/go-boilerpipe.svg?branch=master)](https://travis-ci.org/jlubawy/go-boilerpipe) [![GoDoc](https://godoc.org/github.com/jlubawy/go-boilerpipe?status.svg)](https://godoc.org/github.com/jlubawy/go-boilerpipe)
 
 Boilerpipe removes boilerplate and extracts text content from HTML documents.
 
