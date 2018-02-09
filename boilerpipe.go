@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
 )
 
 // Version is the version of the boilerpipe package.
@@ -140,13 +139,18 @@ func (tb *textBlock) MergeNext(next *textBlock) {
 }
 
 type Document struct {
+	// Title is the title of the document.
 	Title string
-	Date  time.Time
+
+	// Date is the date the document was created.
+	Date time.Time
 
 	TextBlocks []*textBlock
 	errs       []error
 }
 
+// ParseDocument parses an HTML document and returns a Document for further
+// processing through filters.
 func ParseDocument(r io.Reader) (doc *Document, err error) {
 	var h *contentHandler
 	h, err = parse(r, func(z *html.Tokenizer, h *contentHandler) {
@@ -199,38 +203,6 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	}
 
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
-}
-
-func ParseText(r io.Reader) (string, error) {
-	buf := &bytes.Buffer{}
-	fn := func(z *html.Tokenizer, h *contentHandler) {
-		if h.depthIgnoreable == 0 {
-			var skipWhitespace bool
-
-			if h.lastEndTag != "" {
-				a := atom.Lookup([]byte(h.lastEndTag))
-				ta, ok := tagActionMap[a]
-				if ok {
-					switch ta.(type) {
-					case *tagActionAnchor, *tagActionInlineNoWhitespace:
-						skipWhitespace = true
-					}
-				}
-			}
-
-			if !skipWhitespace {
-				buf.WriteRune(' ')
-			}
-
-			buf.WriteString(string(z.Text()))
-		}
-	}
-
-	if _, err := parse(r, fn); err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(reMultiSpace.ReplaceAllString(buf.String(), " ")), nil
 }
 
 func parse(r io.Reader, fn func(z *html.Tokenizer, h *contentHandler)) (h *contentHandler, err error) {
