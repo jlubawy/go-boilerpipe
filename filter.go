@@ -35,9 +35,9 @@ var ArticlePipline = &Pipeline{
 		NumWordsRulesClassifier(),
 		IgnoreBlocksAfterContent(),
 		TrailingHeadlineToBoilerplate(),
-		BlockProximityFusionMaxDistanceOne,
+		BlockProximityFusionMaxDistanceOne(),
 		BoilerplateBlock(),
-		BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
+		BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel(),
 		KeepLargestBlocks(),
 		ExpandTitleToContent(),
 		LargeBlockSameTagLevelToContent(),
@@ -290,30 +290,32 @@ func (filter trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 	return hasChanged
 }
 
-var (
-	BlockProximityFusionMaxDistanceOne                        = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOne", 1, false, false)
-	BlockProximityFusionMaxDistanceOneSameTagLevel            = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOneSameTagLevel", 1, false, true)
-	BlockProximityFusionMaxDistanceOneContentOnly             = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOneContentOnly", 1, true, false)
-	BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel", 1, true, true)
-)
+func BlockProximityFusionMaxDistanceOne() Filter {
+	return &blockProximityFusionParams{"One", 1, false, false}
+}
+
+func BlockProximityFusionMaxDistanceOneSameTagLevel() Filter {
+	return &blockProximityFusionParams{"OneSameTagLevel", 1, false, true}
+}
+
+func BlockProximityFusionMaxDistanceOneContentOnly() Filter {
+	return &blockProximityFusionParams{"OneContentOnly", 1, true, false}
+}
+
+func BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel() Filter {
+	return &blockProximityFusionParams{"OneContentOnlySameTagLevel", 1, true, true}
+}
 
 type blockProximityFusionParams struct {
-	name              string
+	suffix            string
 	maxBlocksDistance int
 	contentOnly       bool
 	sameTagLevelOnly  bool
 }
 
-func BlockProximityFusionParams(name string, maxBlocksDistance int, contentOnly bool, sameTagLevelOnly bool) Filter {
-	return &blockProximityFusionParams{
-		name,
-		maxBlocksDistance,
-		contentOnly,
-		sameTagLevelOnly,
-	}
+func (filter *blockProximityFusionParams) Name() string {
+	return "BlockProximityFusionMaxDistance" + filter.suffix
 }
-
-func (filter *blockProximityFusionParams) Name() string { return filter.name }
 
 func (filter *blockProximityFusionParams) Process(doc *Document) bool {
 	if len(doc.TextBlocks) < 2 {
