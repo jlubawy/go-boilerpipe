@@ -35,9 +35,9 @@ var ArticlePipline = &Pipeline{
 		NumWordsRulesClassifier(),
 		IgnoreBlocksAfterContent(),
 		TrailingHeadlineToBoilerplate(),
-		blockProximityFusionMaxDistanceOne,
+		BlockProximityFusionMaxDistanceOne,
 		BoilerplateBlock(),
-		blockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
+		BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel,
 		KeepLargestBlocks(),
 		ExpandTitleToContent(),
 		LargeBlockSameTagLevelToContent(),
@@ -291,10 +291,10 @@ func (filter trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 }
 
 var (
-	blockProximityFusionMaxDistanceOne                        = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOne", 1, false, false}
-	blockProximityFusionMaxDistanceOneSameTagLevel            = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOneSameTagLevel", 1, false, true}
-	blockProximityFusionMaxDistanceOneContentOnly             = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOneContentOnly", 1, true, false}
-	blockProximityFusionMaxDistanceOneContentOnlySameTagLevel = &blockProximityFusionParams{"blockProximityFusionMaxDistanceOneContentOnlySameTagLevel", 1, true, true}
+	BlockProximityFusionMaxDistanceOne                        = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOne", 1, false, false)
+	BlockProximityFusionMaxDistanceOneSameTagLevel            = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOneSameTagLevel", 1, false, true)
+	BlockProximityFusionMaxDistanceOneContentOnly             = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOneContentOnly", 1, true, false)
+	BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel = BlockProximityFusionParams("BlockProximityFusionMaxDistanceOneContentOnlySameTagLevel", 1, true, true)
 )
 
 type blockProximityFusionParams struct {
@@ -302,6 +302,15 @@ type blockProximityFusionParams struct {
 	maxBlocksDistance int
 	contentOnly       bool
 	sameTagLevelOnly  bool
+}
+
+func BlockProximityFusionParams(name string, maxBlocksDistance int, contentOnly bool, sameTagLevelOnly bool) Filter {
+	return &blockProximityFusionParams{
+		name,
+		maxBlocksDistance,
+		contentOnly,
+		sameTagLevelOnly,
+	}
 }
 
 func (filter *blockProximityFusionParams) Name() string { return filter.name }
