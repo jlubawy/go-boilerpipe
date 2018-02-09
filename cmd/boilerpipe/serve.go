@@ -233,7 +233,7 @@ func Execute(name string, w io.Writer, data map[string]interface{}) error {
 
 	t, exists := templateMap[name]
 	if !exists {
-		return fmt.Errorf("template %s does not exist")
+		return fmt.Errorf("template %s does not exist", name)
 	}
 
 	t = t.Lookup("Root")

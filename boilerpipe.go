@@ -217,7 +217,7 @@ func parse(r io.Reader, fn func(z *html.Tokenizer, h *contentHandler)) (h *conte
 			if z.Err() != io.EOF {
 				err = z.Err()
 			}
-			return
+			goto DONE
 
 		case html.TextToken:
 			fn(z, h)
@@ -233,5 +233,6 @@ func parse(r io.Reader, fn func(z *html.Tokenizer, h *contentHandler)) (h *conte
 		}
 	}
 
+DONE:
 	return
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/jlubawy/go-boilerpipe/normurl"
 )
 
-func ExampleArticlePipeline() {
+func ExampleParseDocument() {
 	// Order of URLs much match the content in testdata
 	var rawurls = []string{
 		"https://blog.openshift.com/day-18-boilerpipe-article-extraction-for-java-developers",
