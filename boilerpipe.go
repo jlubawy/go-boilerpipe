@@ -13,7 +13,7 @@ import (
 )
 
 // Version is the version of the boilerpipe package.
-const Version = "0.2.1"
+const Version = "0.2.2"
 
 var reMultiSpace = regexp.MustCompile(`[\s]+`)
 
@@ -151,18 +151,18 @@ type Document struct {
 
 // ParseDocument parses an HTML document and returns a Document for further
 // processing through filters.
-func ParseDocument(r io.Reader) (doc *Document, err error) {
+func ParseDocument(r io.Reader) (*Document, error) {
 	var h *contentHandler
-	h, err = parse(r, func(z *html.Tokenizer, h *contentHandler) {
+	h, err := parse(r, func(z *html.Tokenizer, h *contentHandler) {
 		h.TextToken(z)
 	})
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	h.FlushBlock()
 
-	doc = new(Document)
+	doc := &Document{}
 
 	// Set the rest of the document fields
 	doc.Title = h.title
@@ -172,13 +172,31 @@ func ParseDocument(r io.Reader) (doc *Document, err error) {
 	doc.TextBlocks = h.textBlocks
 
 	// Save any errors we might have encountered
-	doc.errs = h.Errors()
+	if len(h.errs) > 0 {
+		return nil, ErrorSlice(h.errs)
+	}
 
-	return
+	return doc, nil
 }
 
-func (doc *Document) Errors() []error {
-	return doc.errs
+// An ErrorSlice is a slice of errors that may have been encountered while
+// parsing a document.
+type ErrorSlice []error
+
+// IsErrorSlice returns true if the error is of type ErrorSlice.
+func IsErrorSlice(err error) bool {
+	if _, ok := err.(ErrorSlice); ok {
+		return true
+	}
+	return false
+}
+
+func (es ErrorSlice) Error() string {
+	buf := &bytes.Buffer{}
+	for _, err := range es {
+		fmt.Fprintln(buf, err)
+	}
+	return buf.String()
 }
 
 func (doc *Document) Content() string {

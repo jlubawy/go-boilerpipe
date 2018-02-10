@@ -96,10 +96,6 @@ func newContentHandler() *contentHandler {
 	}
 }
 
-func (h *contentHandler) Errors() []error {
-	return h.errs
-}
-
 func (h *contentHandler) String() string {
 	return fmt.Sprintf("contentHandler{ len(textBlocks): %d, tokenBuffer.Len(): %d, textBuffer.Len(): %d, depthBody: %d, depthAnchor: %d, depthIgnoreable: %d, depthTag: %d, depthBlockTag: %d, sbLastWasWhitespace: %t, textElementIndex: %d, lastStartTag: %s, lastEndTag: %s, offsetBlocks: %d, flush: %t, inAnchorText: %t }",
 		len(h.textBlocks),
