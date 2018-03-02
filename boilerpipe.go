@@ -146,7 +146,8 @@ type Document struct {
 	Date time.Time
 
 	TextBlocks []*textBlock
-	errs       []error
+
+	warnings []string
 }
 
 // ParseDocument parses an HTML document and returns a Document for further
@@ -170,33 +171,9 @@ func ParseDocument(r io.Reader) (*Document, error) {
 		doc.Date = h.time
 	}
 	doc.TextBlocks = h.textBlocks
-
-	// Save any errors we might have encountered
-	if len(h.errs) > 0 {
-		return nil, ErrorSlice(h.errs)
-	}
+	doc.warnings = h.Warnings()
 
 	return doc, nil
-}
-
-// An ErrorSlice is a slice of errors that may have been encountered while
-// parsing a document.
-type ErrorSlice []error
-
-// IsErrorSlice returns true if the error is of type ErrorSlice.
-func IsErrorSlice(err error) bool {
-	if _, ok := err.(ErrorSlice); ok {
-		return true
-	}
-	return false
-}
-
-func (es ErrorSlice) Error() string {
-	buf := &bytes.Buffer{}
-	for _, err := range es {
-		fmt.Fprintln(buf, err)
-	}
-	return buf.String()
 }
 
 func (doc *Document) Content() string {
@@ -221,6 +198,10 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	}
 
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
+}
+
+func (doc *Document) Warnings() []string {
+	return doc.warnings
 }
 
 func parse(r io.Reader, fn func(z *html.Tokenizer, h *contentHandler)) (h *contentHandler, err error) {

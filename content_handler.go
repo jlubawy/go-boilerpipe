@@ -3,7 +3,6 @@ package boilerpipe
 import (
 	"bytes"
 	"container/list"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -74,7 +73,7 @@ type contentHandler struct {
 	labelStacks *list.List
 	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
 
-	errs []error
+	warnings []string
 
 	atomStack *atomStack
 }
@@ -90,10 +89,14 @@ func newContentHandler() *contentHandler {
 
 		labelStacks: list.New(),
 
-		errs: make([]error, 0),
+		warnings: make([]string, 0),
 
 		atomStack: newAtomStack(),
 	}
+}
+
+func (h *contentHandler) Warnings() []string {
+	return h.warnings
 }
 
 func (h *contentHandler) String() string {
@@ -452,8 +455,7 @@ type tagActionAnchor struct{}
 
 func (ta *tagActionAnchor) Start(h *contentHandler) bool {
 	if h.depthAnchor > 0 {
-		h.errs = append(h.errs, errors.New("input contains nested <a> elements"))
-		return false
+		h.warnings = append(h.warnings, "input contains nested <a> elements")
 	}
 
 	h.depthAnchor++
@@ -470,8 +472,7 @@ func (ta *tagActionAnchor) Start(h *contentHandler) bool {
 
 func (*tagActionAnchor) End(h *contentHandler) bool {
 	if h.depthAnchor == 0 {
-		h.errs = append(h.errs, errors.New("input contains unopened </a> element"))
-		return false
+		h.warnings = append(h.warnings, "input contains unopened </a> element")
 	}
 
 	h.depthAnchor--
