@@ -12,7 +12,7 @@ import (
 )
 
 // Version is the version of the boilerpipe package.
-const Version = "0.2.3"
+const Version = "0.2.4"
 
 type textBlock struct {
 	Text string
