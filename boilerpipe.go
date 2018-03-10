@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"regexp"
 	"strings"
 	"time"
 
@@ -14,8 +13,6 @@ import (
 
 // Version is the version of the boilerpipe package.
 const Version = "0.2.3"
-
-var reMultiSpace = regexp.MustCompile(`[\s]+`)
 
 type textBlock struct {
 	Text string

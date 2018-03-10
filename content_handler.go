@@ -252,8 +252,10 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
 
+var reMultiSpace = regexp.MustCompile(`[\s]+`)
+
 func tokenize(b *bytes.Buffer) []string {
-	return reMultiSpace.Split(b.String(), -1)
+	return reMultiSpace.Split(strings.TrimSpace(b.String()), -1)
 }
 
 var reValidWordCharacter = regexp.MustCompile(`[\w]`)
