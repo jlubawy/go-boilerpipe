@@ -93,7 +93,7 @@ func (terminatingBlocks) Process(doc *Document) bool {
 					hasChanged = true
 				}
 
-			} else if tb.LinkDensity == 1.0 {
+			} else if tb.LinkDensity() == 1.0 {
 				if text == "Comment" {
 					tb.AddLabels(LabelIndicatesEndOfText)
 				}
@@ -722,8 +722,8 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 func classify(prev, curr, next *TextBlock) bool {
 	isContent := false
 
-	if curr.LinkDensity <= 0.333333 {
-		if prev.LinkDensity <= 0.555556 {
+	if curr.LinkDensity() <= 0.333333 {
+		if prev.LinkDensity() <= 0.555556 {
 			if curr.NumWords <= 16 {
 				if next.NumWords <= 15 {
 					if prev.NumWords <= 4 {
@@ -759,7 +759,7 @@ func classify(prev, curr, next *TextBlock) bool {
 func getNumFullTextWords(tb *TextBlock) int {
 	minTextDensity := 9.0
 
-	if tb.TextDensity >= minTextDensity {
+	if tb.TextDensity() >= minTextDensity {
 		return tb.NumWords
 	} else {
 		return 0
@@ -783,7 +783,7 @@ func (filter listAtEnd) Process(doc *Document) bool {
 			tagLevel = tb.TagLevel
 		} else {
 			if tb.TagLevel > tagLevel && tb.HasLabel(LabelMightBeContent) &&
-				tb.HasLabel(LabelList) && tb.LinkDensity == 0.0 {
+				tb.HasLabel(LabelList) && tb.LinkDensity() == 0.0 {
 				tb.IsContent = true
 				hasChanged = true
 			} else {

@@ -335,15 +335,34 @@ func (h *contentHandler) FlushBlock() {
 	text := strings.TrimSpace(h.textBuffer.String())
 
 	if len(text) > 0 {
-		h.addTextBlock(newTextBlock(
-			text,
-			numWords,
-			numLinkedWords,
-			numWordsInWrappedLines,
-			numWrappedLines,
-			h.offsetBlocks,
-			h.depthBlockTag,
-		))
+		tb := NewTextBlock()
+
+		tb.Text = text
+		tb.NumWords = numWords
+		tb.NumLinkedWords = numLinkedWords
+		tb.NumWordsInWrappedLines = numWordsInWrappedLines
+		tb.NumWrappedLines = numWrappedLines
+		tb.OffsetBlocksStart = h.offsetBlocks
+		tb.OffsetBlocksEnd = h.offsetBlocks
+		tb.TagLevel = h.depthBlockTag
+
+		if numWordsInWrappedLines == 0 {
+			tb.NumWordsInWrappedLines = numWords
+			tb.NumWrappedLines = 1
+		}
+
+		// TODO:
+		//for (Integer l : fontSizeStack) {
+		//  if (l != null) {
+		//    tb.AddLabels("font-" + l);
+		//    break;
+		//  }
+		//}
+
+		tb.AddLabels(h.labelStack.PopAll()...)
+
+		h.textBlocks = append(h.textBlocks, tb)
+
 		// TODO: currentContainedTextElements = new BitSet();
 		h.offsetBlocks++
 	}
@@ -352,20 +371,6 @@ func (h *contentHandler) FlushBlock() {
 	h.tokenBuffer.Reset()
 
 	h.depthBlockTag = -1
-}
-
-func (h *contentHandler) addTextBlock(tb *TextBlock) {
-	// TODO:
-	//for (Integer l : fontSizeStack) {
-	//  if (l != null) {
-	//    tb.AddLabels("font-" + l);
-	//    break;
-	//  }
-	//}
-
-	tb.AddLabels(h.labelStack.PopAll()...)
-
-	h.textBlocks = append(h.textBlocks, tb)
 }
 
 func (h *contentHandler) addWhitespaceIfNecessary() {

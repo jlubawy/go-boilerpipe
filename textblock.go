@@ -75,49 +75,30 @@ type TextBlock struct {
 	NumWrappedLines        int
 	TagLevel               int
 
-	TextDensity float64
-	LinkDensity float64
-
 	IsContent bool
 
 	Labels map[Label]bool
 }
 
-var textBlockEmptyStart = newTextBlock("", 0, 0, 0, 0, math.MinInt32, 0)
-var textBlockEmptyEnd = newTextBlock("", 0, 0, 0, 0, math.MaxInt32, 0)
+var (
+	textBlockEmptyStart *TextBlock
+	textBlockEmptyEnd   *TextBlock
+)
 
-func newTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrappedLines int, numWrappedLines int, offsetBlocks int, tagLevel int) *TextBlock {
-	tb := &TextBlock{
-		Text: text,
-		// TODO: currentContainedTextElements,
-		NumWords:               numWords,
-		NumLinkedWords:         numLinkedWords,
-		NumWordsInWrappedLines: numWordsInWrappedLines,
-		NumWrappedLines:        numWrappedLines,
-		OffsetBlocksStart:      offsetBlocks,
-		OffsetBlocksEnd:        offsetBlocks,
-		TagLevel:               tagLevel,
+func init() {
+	textBlockEmptyStart = NewTextBlock()
+	textBlockEmptyStart.OffsetBlocksStart = math.MinInt32
+	textBlockEmptyStart.OffsetBlocksEnd = math.MinInt32
 
-		Labels: make(map[Label]bool),
-	}
-
-	if numWordsInWrappedLines == 0 {
-		tb.NumWordsInWrappedLines = numWords
-		tb.NumWrappedLines = 1
-	}
-
-	initDensities(tb)
-
-	return tb
+	textBlockEmptyEnd = NewTextBlock()
+	textBlockEmptyEnd.OffsetBlocksStart = math.MaxInt32
+	textBlockEmptyEnd.OffsetBlocksEnd = math.MaxInt32
 }
 
-func initDensities(tb *TextBlock) {
-	tb.TextDensity = float64(tb.NumWordsInWrappedLines) / float64(tb.NumWrappedLines)
-	if tb.NumWords == 0 {
-		tb.LinkDensity = 0.0
-	} else {
-		tb.LinkDensity = float64(tb.NumLinkedWords) / float64(tb.NumWords)
-	}
+func NewTextBlock() (tb *TextBlock) {
+	tb = new(TextBlock)
+	tb.Labels = make(map[Label]bool)
+	return
 }
 
 func (tb *TextBlock) AddLabels(labels ...Label) *TextBlock {
@@ -147,8 +128,6 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 	tb.OffsetBlocksStart = int(math.Min(float64(tb.OffsetBlocksStart), float64(next.OffsetBlocksStart)))
 	tb.OffsetBlocksEnd = int(math.Min(float64(tb.OffsetBlocksEnd), float64(next.OffsetBlocksEnd)))
 
-	initDensities(tb)
-
 	tb.IsContent = tb.IsContent || next.IsContent
 
 	// TODO
@@ -163,4 +142,15 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 	}
 
 	tb.TagLevel = int(math.Min(float64(tb.TagLevel), float64(next.TagLevel)))
+}
+
+func (tb *TextBlock) LinkDensity() float64 {
+	if tb.NumWords == 0 {
+		return 0.0
+	}
+	return float64(tb.NumLinkedWords) / float64(tb.NumWords)
+}
+
+func (tb *TextBlock) TextDensity() float64 {
+	return float64(tb.NumWordsInWrappedLines) / float64(tb.NumWrappedLines)
 }
