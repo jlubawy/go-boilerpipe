@@ -210,8 +210,8 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
 			if h.lastWasWhitespace == false {
-				h.textBuffer.WriteRune(' ')
-				h.tokenBuffer.WriteRune(' ')
+				h.textBuffer.WriteByte(' ')
+				h.tokenBuffer.WriteByte(' ')
 			}
 			h.lastWasWhitespace = true
 		} else {
@@ -223,8 +223,8 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 
 	if sr.wasFirstWhitespace {
 		if h.lastWasWhitespace == false {
-			h.textBuffer.WriteRune(' ')
-			h.tokenBuffer.WriteRune(' ')
+			h.textBuffer.WriteByte(' ')
+			h.tokenBuffer.WriteByte(' ')
 		}
 	}
 
@@ -235,8 +235,8 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 	h.textBuffer.WriteString(ch)
 	h.tokenBuffer.WriteString(ch)
 	if sr.wasLastWhitespace {
-		h.textBuffer.WriteRune(' ')
-		h.tokenBuffer.WriteRune(' ')
+		h.textBuffer.WriteByte(' ')
+		h.tokenBuffer.WriteByte(' ')
 	}
 
 	h.lastWasWhitespace = sr.wasLastWhitespace
@@ -384,8 +384,8 @@ func (h *contentHandler) addTextBlock(tb *textBlock) {
 
 func (h *contentHandler) addWhitespaceIfNecessary() {
 	if h.lastWasWhitespace == false {
-		h.tokenBuffer.WriteRune(' ')
-		h.textBuffer.WriteRune(' ')
+		h.tokenBuffer.WriteByte(' ')
+		h.textBuffer.WriteByte(' ')
 		h.lastWasWhitespace = true
 	}
 }
@@ -433,7 +433,7 @@ func (ta *tagActionAnchor) Start(h *contentHandler) bool {
 	if h.depthIgnoreable == 0 {
 		h.addWhitespaceIfNecessary()
 		h.tokenBuffer.WriteString(anchorTextStart)
-		h.tokenBuffer.WriteRune(' ')
+		h.tokenBuffer.WriteByte(' ')
 		h.lastWasWhitespace = true
 	}
 
@@ -447,7 +447,7 @@ func (*tagActionAnchor) End(h *contentHandler) bool {
 		if h.depthIgnoreable == 0 {
 			h.addWhitespaceIfNecessary()
 			h.tokenBuffer.WriteString(anchorTextEnd)
-			h.tokenBuffer.WriteRune(' ')
+			h.tokenBuffer.WriteByte(' ')
 			h.lastWasWhitespace = true
 		}
 	}
