@@ -3,6 +3,7 @@ package boilerpipe
 import (
 	"bytes"
 	"container/list"
+	"errors"
 	"regexp"
 	"strings"
 	"time"
@@ -10,6 +11,10 @@ import (
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+)
+
+var (
+	ErrNestedAnchor = errors.New("text")
 )
 
 type atomStack struct {
@@ -72,8 +77,6 @@ type contentHandler struct {
 	labelStacks *list.List
 	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
 
-	warnings []string
-
 	atomStack *atomStack
 }
 
@@ -88,14 +91,8 @@ func newContentHandler() *contentHandler {
 
 		labelStacks: list.New(),
 
-		warnings: make([]string, 0),
-
 		atomStack: newAtomStack(),
 	}
-}
-
-func (h *contentHandler) Warnings() []string {
-	return h.warnings
 }
 
 func (h *contentHandler) StartElement(z *html.Tokenizer) {
@@ -436,10 +433,6 @@ func (*tagActionIgnorable) ChangesTagLevel() bool { return true }
 type tagActionAnchor struct{}
 
 func (ta *tagActionAnchor) Start(h *contentHandler) bool {
-	if h.depthAnchor > 0 {
-		h.warnings = append(h.warnings, "input contains nested <a> elements")
-	}
-
 	h.depthAnchor++
 
 	if h.depthIgnoreable == 0 {
@@ -453,10 +446,6 @@ func (ta *tagActionAnchor) Start(h *contentHandler) bool {
 }
 
 func (*tagActionAnchor) End(h *contentHandler) bool {
-	if h.depthAnchor == 0 {
-		h.warnings = append(h.warnings, "input contains unopened </a> element")
-	}
-
 	h.depthAnchor--
 
 	if h.depthAnchor == 0 {

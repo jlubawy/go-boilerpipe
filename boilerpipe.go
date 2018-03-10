@@ -143,8 +143,6 @@ type Document struct {
 	Date time.Time
 
 	TextBlocks []*textBlock
-
-	warnings []string
 }
 
 // ParseDocument parses an HTML document and returns a Document for further
@@ -168,7 +166,6 @@ func ParseDocument(r io.Reader) (*Document, error) {
 		doc.Date = h.time
 	}
 	doc.TextBlocks = h.textBlocks
-	doc.warnings = h.Warnings()
 
 	return doc, nil
 }
@@ -195,10 +192,6 @@ func (doc *Document) Text(includeContent, includeNonContent bool) string {
 	}
 
 	return html.EscapeString(strings.Trim(buf.String(), " \n"))
-}
-
-func (doc *Document) Warnings() []string {
-	return doc.warnings
 }
 
 func parse(r io.Reader, fn func(z *html.Tokenizer, h *contentHandler)) (h *contentHandler, err error) {
