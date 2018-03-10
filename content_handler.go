@@ -2,7 +2,6 @@ package boilerpipe
 
 import (
 	"bytes"
-	"container/list"
 	"regexp"
 	"strings"
 	"time"
@@ -69,7 +68,7 @@ type contentHandler struct {
 	flush        bool
 	inAnchorText bool
 
-	labelStacks *list.List
+	labelStack *LabelStack
 	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
 
 	atomStack *atomStack
@@ -84,15 +83,13 @@ func newContentHandler() *contentHandler {
 
 		textBlocks: make([]*TextBlock, 0),
 
-		labelStacks: list.New(),
+		labelStack: NewLabelStack(),
 
 		atomStack: newAtomStack(),
 	}
 }
 
 func (h *contentHandler) StartElement(z *html.Tokenizer) {
-	h.labelStacks.PushBack(nil)
-
 	tn, _ := z.TagName()
 	a := atom.Lookup(tn)
 
@@ -158,7 +155,7 @@ func (h *contentHandler) EndElement(z *html.Tokenizer) {
 
 	h.lastEndTag = a.String()
 
-	h.labelStacks.Remove(h.labelStacks.Back())
+	h.labelStack.Pop()
 }
 
 type spaceRemover struct {
@@ -361,23 +358,12 @@ func (h *contentHandler) addTextBlock(tb *TextBlock) {
 	// TODO:
 	//for (Integer l : fontSizeStack) {
 	//  if (l != null) {
-	//    tb.addLabel("font-" + l);
+	//    tb.AddLabels("font-" + l);
 	//    break;
 	//  }
 	//}
 
-	for e := h.labelStacks.Back(); e != nil; e = e.Prev() {
-		if e.Value != nil {
-			labelStack := e.Value.(*list.List)
-
-			for e1 := labelStack.Back(); e1 != nil; e1 = e1.Prev() {
-				if e1.Value != nil {
-					labelActions := e1.Value.(*labelAction)
-					labelActions.AddTo(tb)
-				}
-			}
-		}
-	}
+	tb.AddLabels(h.labelStack.PopAll()...)
 
 	h.textBlocks = append(h.textBlocks, tb)
 }
@@ -388,21 +374,6 @@ func (h *contentHandler) addWhitespaceIfNecessary() {
 		h.textBuffer.WriteByte(' ')
 		h.lastWasWhitespace = true
 	}
-}
-
-func (h *contentHandler) addLabelAction(la *labelAction) {
-	var labelStack *list.List
-	el := h.labelStacks.Back()
-
-	if el.Value == nil {
-		labelStack = list.New()
-		h.labelStacks.Remove(h.labelStacks.Back())
-		h.labelStacks.PushBack(labelStack)
-	} else {
-		labelStack = el.Value.(*list.List)
-	}
-
-	labelStack.PushBack(la)
 }
 
 type tagAction interface {
@@ -492,10 +463,10 @@ func (*tagActionInlineNoWhitespace) Start(h *contentHandler) bool { return false
 func (*tagActionInlineNoWhitespace) End(h *contentHandler) bool   { return false }
 func (*tagActionInlineNoWhitespace) ChangesTagLevel() bool        { return false }
 
-type tagActionBlockTagLabel struct{ labelAction *labelAction }
+type tagActionBlockTagLabel struct{ labels []Label }
 
 func (ta *tagActionBlockTagLabel) Start(h *contentHandler) bool {
-	h.addLabelAction(ta.labelAction)
+	h.labelStack.Push(ta.labels...)
 	return true
 }
 func (*tagActionBlockTagLabel) End(h *contentHandler) bool { return true }
@@ -545,10 +516,10 @@ var tagActionMap = map[atom.Atom]tagAction{
 	atom.U:      &tagActionInlineNoWhitespace{},
 	atom.Var:    &tagActionInlineNoWhitespace{},
 
-	atom.Li: &tagActionBlockTagLabel{newLabelAction(labelList)},
-	atom.H1: &tagActionBlockTagLabel{newLabelAction(labelHeading, labelHeading1)},
-	atom.H2: &tagActionBlockTagLabel{newLabelAction(labelHeading, labelHeading2)},
-	atom.H3: &tagActionBlockTagLabel{newLabelAction(labelHeading, labelHeading3)},
+	atom.Li: &tagActionBlockTagLabel{[]Label{LabelList}},
+	atom.H1: &tagActionBlockTagLabel{[]Label{LabelHeading, LabelHeading1}},
+	atom.H2: &tagActionBlockTagLabel{[]Label{LabelHeading, LabelHeading2}},
+	atom.H3: &tagActionBlockTagLabel{[]Label{LabelHeading, LabelHeading3}},
 
 	atom.Area:     &tagActionIgnoreableVoid{},
 	atom.Base:     &tagActionIgnoreableVoid{},
@@ -567,18 +538,4 @@ var tagActionMap = map[atom.Atom]tagAction{
 	atom.Wbr:      &tagActionIgnoreableVoid{},
 
 	atom.Time: &tagActionTime{},
-}
-
-type labelAction struct{ labels []label }
-
-func newLabelAction(labels ...label) *labelAction {
-	la := &labelAction{
-		labels: make([]label, 0),
-	}
-	la.labels = append(la.labels, labels...)
-	return la
-}
-
-func (la *labelAction) AddTo(tb *TextBlock) {
-	tb.AddLabels(la.labels...)
 }

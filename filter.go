@@ -89,13 +89,13 @@ func (terminatingBlocks) Process(doc *Document) bool {
 					strings.Contains(textLC, "rätta artikeln") ||
 					textLC == "thanks for your comments - this feedback is now closed" {
 
-					tb.AddLabel(labelIndicatesEndOfText)
+					tb.AddLabels(LabelIndicatesEndOfText)
 					hasChanged = true
 				}
 
 			} else if tb.LinkDensity == 1.0 {
 				if text == "Comment" {
-					tb.AddLabel(labelIndicatesEndOfText)
+					tb.AddLabels(LabelIndicatesEndOfText)
 				}
 			}
 		}
@@ -195,14 +195,14 @@ func (filter documentTitleMatchClassifier) Process(doc *Document) bool {
 		text = strings.ToLower(text)
 
 		if _, contains := potentialTitles[text]; contains {
-			tb.AddLabel(labelTitle)
+			tb.AddLabels(LabelTitle)
 			hasChanged = true
 			break
 		}
 
 		text = strings.TrimSpace(regexp.MustCompile("[\\?\\!\\.\\-\\:]+").ReplaceAllString(text, ""))
 		if _, contains := potentialTitles[text]; contains {
-			tb.AddLabel(labelTitle)
+			tb.AddLabels(LabelTitle)
 			hasChanged = true
 			break
 		}
@@ -278,7 +278,7 @@ func (filter trailingHeadlineToBoilerplate) Process(doc *Document) bool {
 		tb := doc.TextBlocks[i]
 
 		if tb.IsContent {
-			if tb.HasLabel(labelHeading) {
+			if tb.HasLabel(LabelHeading) {
 				tb.IsContent = false
 				hasChanged = true
 			} else {
@@ -402,7 +402,7 @@ func (filter boilerplateBlock) Process(doc *Document) bool {
 	for i := 0; i < len(doc.TextBlocks); i++ {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent == false && tb.HasLabel(labelTitle) == false {
+		if tb.IsContent == false && tb.HasLabel(LabelTitle) == false {
 			doc.TextBlocks = append(doc.TextBlocks[:i], doc.TextBlocks[i+1:]...)
 			i--
 			hasChanged = true
@@ -463,10 +463,10 @@ func (filter keepLargestBlocks) Process(doc *Document) bool {
 
 		if tb == largestBlock {
 			tb.IsContent = true
-			tb.AddLabel(labelVeryLikelyContent)
+			tb.AddLabels(LabelVeryLikelyContent)
 		} else {
 			tb.IsContent = isLargestBlock(maxNumWords, tb)
-			tb.AddLabel(labelMightBeContent)
+			tb.AddLabels(LabelMightBeContent)
 		}
 	}
 
@@ -556,7 +556,7 @@ func (filter keepLargestFulltextBlock) Process(doc *Document) bool {
 			tb.IsContent = true
 		} else {
 			tb.IsContent = false
-			tb.AddLabel(labelMightBeContent)
+			tb.AddLabels(LabelMightBeContent)
 		}
 	}
 
@@ -577,7 +577,7 @@ func (filter expandTitleToContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if contentStart == -1 && tb.HasLabel(labelTitle) {
+		if contentStart == -1 && tb.HasLabel(LabelTitle) {
 			title = j
 			contentStart = -1
 		}
@@ -597,7 +597,7 @@ func (filter expandTitleToContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks[title:contentStart] {
 		tb := doc.TextBlocks[i]
 
-		if tb.HasLabel(labelMightBeContent) {
+		if tb.HasLabel(LabelMightBeContent) {
 			hasChanged = (tb.IsContent == false) || hasChanged
 			tb.IsContent = true
 		}
@@ -619,7 +619,7 @@ func (filter largeBlockSameTagLevelToContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent && tb.HasLabel(labelVeryLikelyContent) {
+		if tb.IsContent && tb.HasLabel(LabelVeryLikelyContent) {
 			tagLevel = tb.TagLevel
 			break
 		}
@@ -661,7 +661,7 @@ func (filter ignoreBlocksAfterContent) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		eot := tb.HasLabel(labelIndicatesEndOfText)
+		eot := tb.HasLabel(LabelIndicatesEndOfText)
 
 		if tb.IsContent {
 			numWords += getNumFullTextWords(tb)
@@ -779,11 +779,11 @@ func (filter listAtEnd) Process(doc *Document) bool {
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
 
-		if tb.IsContent && tb.HasLabel(labelVeryLikelyContent) {
+		if tb.IsContent && tb.HasLabel(LabelVeryLikelyContent) {
 			tagLevel = tb.TagLevel
 		} else {
-			if tb.TagLevel > tagLevel && tb.HasLabel(labelMightBeContent) &&
-				tb.HasLabel(labelList) && tb.LinkDensity == 0.0 {
+			if tb.TagLevel > tagLevel && tb.HasLabel(LabelMightBeContent) &&
+				tb.HasLabel(LabelList) && tb.LinkDensity == 0.0 {
 				tb.IsContent = true
 				hasChanged = true
 			} else {

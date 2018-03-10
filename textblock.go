@@ -5,19 +5,63 @@ import (
 	"math"
 )
 
-type label string
+type Label int
 
+//go:generate stringer -type=Label
 const (
-	labelIndicatesEndOfText label = "IndicatesEndOfText"
-	labelMightBeContent           = "MightBeContent"
-	labelVeryLikelyContent        = "VeryLikelyContent"
-	labelTitle                    = "Title"
-	labelList                     = "List"
-	labelHeading                  = "Heading"
-	labelHeading1                 = "Heading1"
-	labelHeading2                 = "Heading2"
-	labelHeading3                 = "Heading3"
+	LabelIndicatesEndOfText Label = iota
+	LabelMightBeContent
+	LabelVeryLikelyContent
+	LabelTitle
+	LabelList
+	LabelHeading
+	LabelHeading1
+	LabelHeading2
+	LabelHeading3
 )
+
+type LabelStack struct {
+	labels []Label
+}
+
+func NewLabelStack() *LabelStack {
+	return &LabelStack{
+		labels: make([]Label, 0),
+	}
+}
+
+func (x *LabelStack) Len() int {
+	return len(x.labels)
+}
+
+func (x *LabelStack) Pop() (label Label, ok bool) {
+	if len(x.labels) == 0 {
+		return
+	}
+	label = x.labels[len(x.labels)-1]
+	ok = true
+	x.labels = x.labels[:len(x.labels)-1]
+	return
+}
+
+func (x *LabelStack) PopAll() (labels []Label) {
+	if x.Len() == 0 {
+		return
+	}
+
+	labels = make([]Label, x.Len())
+	for i, j := x.Len(), 0; i > 0; i-- {
+		labels[j] = x.labels[i-1]
+		j++
+	}
+	x.labels = nil
+	x.labels = make([]Label, 0)
+	return
+}
+
+func (x *LabelStack) Push(labels ...Label) {
+	x.labels = append(x.labels, labels...)
+}
 
 type TextBlock struct {
 	Text string
@@ -36,7 +80,7 @@ type TextBlock struct {
 
 	IsContent bool
 
-	Labels map[label]bool
+	Labels map[Label]bool
 }
 
 var textBlockEmptyStart = newTextBlock("", 0, 0, 0, 0, math.MinInt32, 0)
@@ -54,7 +98,7 @@ func newTextBlock(text string, numWords int, numLinkedWords int, numWordsInWrapp
 		OffsetBlocksEnd:        offsetBlocks,
 		TagLevel:               tagLevel,
 
-		Labels: make(map[label]bool),
+		Labels: make(map[Label]bool),
 	}
 
 	if numWordsInWrappedLines == 0 {
@@ -76,19 +120,14 @@ func initDensities(tb *TextBlock) {
 	}
 }
 
-func (tb *TextBlock) AddLabel(label label) *TextBlock {
-	tb.Labels[label] = true
-	return tb
-}
-
-func (tb *TextBlock) AddLabels(labels ...label) *TextBlock {
+func (tb *TextBlock) AddLabels(labels ...Label) *TextBlock {
 	for _, label := range labels {
-		tb.AddLabel(label)
+		tb.Labels[label] = true
 	}
 	return tb
 }
 
-func (tb *TextBlock) HasLabel(label label) bool {
+func (tb *TextBlock) HasLabel(label Label) bool {
 	_, hasLabel := tb.Labels[label]
 	return hasLabel
 }
