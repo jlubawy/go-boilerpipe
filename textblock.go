@@ -126,7 +126,7 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 	tb.NumWrappedLines += next.NumWrappedLines
 
 	tb.OffsetBlocksStart = int(math.Min(float64(tb.OffsetBlocksStart), float64(next.OffsetBlocksStart)))
-	tb.OffsetBlocksEnd = int(math.Min(float64(tb.OffsetBlocksEnd), float64(next.OffsetBlocksEnd)))
+	tb.OffsetBlocksEnd = int(math.Max(float64(tb.OffsetBlocksEnd), float64(next.OffsetBlocksEnd)))
 
 	tb.IsContent = tb.IsContent || next.IsContent
 
