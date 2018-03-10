@@ -118,6 +118,16 @@ func (tb *TextBlock) HasLabel(label Label) bool {
 	return hasLabel
 }
 
+func (tb *TextBlock) Labels() (labels []Label) {
+	labels = make([]Label, len(tb.labelMap))
+	i := 0
+	for label := range tb.labelMap {
+		labels[i] = label
+		i += 1
+	}
+	return
+}
+
 func (tb *TextBlock) MergeNext(next *TextBlock) {
 	// Concatenate the text separated by a newline
 	buf := bytes.NewBufferString(tb.Text)
