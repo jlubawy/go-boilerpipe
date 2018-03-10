@@ -73,11 +73,12 @@ type TextBlock struct {
 	NumLinkedWords         int
 	NumWordsInWrappedLines int
 	NumWrappedLines        int
-	TagLevel               int
+
+	TagLevel int
 
 	IsContent bool
 
-	Labels map[Label]bool
+	labelMap map[Label]int
 }
 
 var (
@@ -97,36 +98,41 @@ func init() {
 
 func NewTextBlock() (tb *TextBlock) {
 	tb = new(TextBlock)
-	tb.Labels = make(map[Label]bool)
+	tb.labelMap = make(map[Label]int)
 	return
 }
 
 func (tb *TextBlock) AddLabels(labels ...Label) *TextBlock {
 	for _, label := range labels {
-		tb.Labels[label] = true
+		if _, ok := tb.labelMap[label]; ok {
+			tb.labelMap[label] += 1
+		} else {
+			tb.labelMap[label] = 1
+		}
 	}
 	return tb
 }
 
 func (tb *TextBlock) HasLabel(label Label) bool {
-	_, hasLabel := tb.Labels[label]
+	_, hasLabel := tb.labelMap[label]
 	return hasLabel
 }
 
 func (tb *TextBlock) MergeNext(next *TextBlock) {
+	// Concatenate the text separated by a newline
 	buf := bytes.NewBufferString(tb.Text)
 	buf.WriteRune('\n')
 	buf.WriteString(next.Text)
 	tb.Text = buf.String()
 
-	tb.NumWords += next.NumWords
-	tb.NumLinkedWords += next.NumLinkedWords
-
-	tb.NumWordsInWrappedLines += next.NumWordsInWrappedLines
-	tb.NumWrappedLines += next.NumWrappedLines
-
 	tb.OffsetBlocksStart = int(math.Min(float64(tb.OffsetBlocksStart), float64(next.OffsetBlocksStart)))
 	tb.OffsetBlocksEnd = int(math.Max(float64(tb.OffsetBlocksEnd), float64(next.OffsetBlocksEnd)))
+
+	// Add counts
+	tb.NumWords += next.NumWords
+	tb.NumLinkedWords += next.NumLinkedWords
+	tb.NumWordsInWrappedLines += next.NumWordsInWrappedLines
+	tb.NumWrappedLines += next.NumWrappedLines
 
 	tb.IsContent = tb.IsContent || next.IsContent
 
@@ -137,8 +143,13 @@ func (tb *TextBlock) MergeNext(next *TextBlock) {
 	//  containedTextElements.or(next.containedTextElements);
 	//}
 
-	for k, v := range next.Labels {
-		tb.Labels[k] = v
+	// Merge the labels
+	for label, nextCount := range next.labelMap {
+		if count, ok := tb.labelMap[label]; ok {
+			tb.labelMap[label] = count + nextCount
+		} else {
+			tb.labelMap[label] = nextCount
+		}
 	}
 
 	tb.TagLevel = int(math.Min(float64(tb.TagLevel), float64(next.TagLevel)))
