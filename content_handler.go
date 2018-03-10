@@ -3,7 +3,6 @@ package boilerpipe
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -97,25 +96,6 @@ func newContentHandler() *contentHandler {
 
 func (h *contentHandler) Warnings() []string {
 	return h.warnings
-}
-
-func (h *contentHandler) String() string {
-	return fmt.Sprintf("contentHandler{ len(textBlocks): %d, tokenBuffer.Len(): %d, textBuffer.Len(): %d, depthBody: %d, depthAnchor: %d, depthIgnoreable: %d, depthTag: %d, depthBlockTag: %d, sbLastWasWhitespace: %t, textElementIndex: %d, lastStartTag: %s, lastEndTag: %s, offsetBlocks: %d, flush: %t, inAnchorText: %t }",
-		len(h.textBlocks),
-		h.tokenBuffer.Len(),
-		h.textBuffer.Len(),
-		h.depthBody,
-		h.depthAnchor,
-		h.depthIgnoreable,
-		h.depthTag,
-		h.depthBlockTag,
-		h.sbLastWasWhitespace,
-		h.textElementIndex,
-		h.lastStartTag,
-		h.lastEndTag,
-		h.offsetBlocks,
-		h.flush,
-		h.inAnchorText)
 }
 
 func (h *contentHandler) StartElement(z *html.Tokenizer) {
