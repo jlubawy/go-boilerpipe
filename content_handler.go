@@ -58,7 +58,7 @@ type contentHandler struct {
 	lastWasWhitespace bool
 	textElementIndex  int
 
-	textBlocks []*textBlock
+	textBlocks []*TextBlock
 
 	lastStartTag string
 	lastEndTag   string
@@ -82,7 +82,7 @@ func newContentHandler() *contentHandler {
 
 		depthBlockTag: -1,
 
-		textBlocks: make([]*textBlock, 0),
+		textBlocks: make([]*TextBlock, 0),
 
 		labelStacks: list.New(),
 
@@ -357,7 +357,7 @@ func (h *contentHandler) FlushBlock() {
 	h.depthBlockTag = -1
 }
 
-func (h *contentHandler) addTextBlock(tb *textBlock) {
+func (h *contentHandler) addTextBlock(tb *TextBlock) {
 	// TODO:
 	//for (Integer l : fontSizeStack) {
 	//  if (l != null) {
@@ -579,6 +579,6 @@ func newLabelAction(labels ...label) *labelAction {
 	return la
 }
 
-func (la *labelAction) AddTo(tb *textBlock) {
+func (la *labelAction) AddTo(tb *TextBlock) {
 	tb.AddLabels(la.labels...)
 }

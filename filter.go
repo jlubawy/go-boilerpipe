@@ -328,7 +328,7 @@ func (filter *blockProximityFusionParams) Process(doc *Document) bool {
 	contentOnly := filter.contentOnly
 	sameTagLevelOnly := filter.sameTagLevelOnly
 
-	var prevBlock *textBlock
+	var prevBlock *TextBlock
 	startBlock := 0
 
 	if contentOnly {
@@ -432,7 +432,7 @@ func (filter keepLargestBlocks) Process(doc *Document) bool {
 
 	var (
 		maxNumWords  = -1
-		largestBlock *textBlock
+		largestBlock *TextBlock
 		level        = -1
 		j            = 0
 		n            = -1
@@ -503,7 +503,7 @@ func (filter keepLargestBlocks) Process(doc *Document) bool {
 	return true
 }
 
-func isLargestBlock(maxNumWords int, tb *textBlock) bool {
+func isLargestBlock(maxNumWords int, tb *TextBlock) bool {
 	var minWordPercent float64
 	switch {
 	case maxNumWords >= 1000:
@@ -529,7 +529,7 @@ func (filter keepLargestFulltextBlock) Process(doc *Document) bool {
 	}
 
 	max := -1
-	var largestBlock *textBlock
+	var largestBlock *TextBlock
 
 	for i := range doc.TextBlocks {
 		tb := doc.TextBlocks[i]
@@ -693,7 +693,7 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 
 	prevBlock := textBlockEmptyStart
 	currentBlock := doc.TextBlocks[0]
-	var nextBlock *textBlock
+	var nextBlock *TextBlock
 
 	if len(doc.TextBlocks) >= 2 {
 		nextBlock = doc.TextBlocks[1]
@@ -719,7 +719,7 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 	return hasChanged
 }
 
-func classify(prev, curr, next *textBlock) bool {
+func classify(prev, curr, next *TextBlock) bool {
 	isContent := false
 
 	if curr.LinkDensity <= 0.333333 {
@@ -756,7 +756,7 @@ func classify(prev, curr, next *textBlock) bool {
 	return isContent
 }
 
-func getNumFullTextWords(tb *textBlock) int {
+func getNumFullTextWords(tb *TextBlock) int {
 	minTextDensity := 9.0
 
 	if tb.TextDensity >= minTextDensity {
