@@ -3,7 +3,6 @@ package boilerpipe
 import (
 	"bytes"
 	"container/list"
-	"errors"
 	"regexp"
 	"strings"
 	"time"
@@ -11,10 +10,6 @@ import (
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
-)
-
-var (
-	ErrNestedAnchor = errors.New("text")
 )
 
 type atomStack struct {
@@ -60,8 +55,8 @@ type contentHandler struct {
 	depthTag      int
 	depthBlockTag int
 
-	sbLastWasWhitespace bool
-	textElementIndex    int
+	lastWasWhitespace bool
+	textElementIndex  int
 
 	textBlocks []*textBlock
 
@@ -214,20 +209,20 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), t))
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
-			if h.sbLastWasWhitespace == false {
+			if h.lastWasWhitespace == false {
 				h.textBuffer.WriteRune(' ')
 				h.tokenBuffer.WriteRune(' ')
 			}
-			h.sbLastWasWhitespace = true
+			h.lastWasWhitespace = true
 		} else {
-			h.sbLastWasWhitespace = false
+			h.lastWasWhitespace = false
 		}
 
 		return
 	}
 
 	if sr.wasFirstWhitespace {
-		if h.sbLastWasWhitespace == false {
+		if h.lastWasWhitespace == false {
 			h.textBuffer.WriteRune(' ')
 			h.tokenBuffer.WriteRune(' ')
 		}
@@ -244,7 +239,7 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 		h.tokenBuffer.WriteRune(' ')
 	}
 
-	h.sbLastWasWhitespace = sr.wasLastWhitespace
+	h.lastWasWhitespace = sr.wasLastWhitespace
 
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
@@ -279,7 +274,7 @@ func (h *contentHandler) FlushBlock() {
 	case 0:
 		return
 	case 1:
-		if h.sbLastWasWhitespace {
+		if h.lastWasWhitespace {
 			h.textBuffer.Reset()
 			h.tokenBuffer.Reset()
 			return
@@ -388,10 +383,10 @@ func (h *contentHandler) addTextBlock(tb *textBlock) {
 }
 
 func (h *contentHandler) addWhitespaceIfNecessary() {
-	if h.sbLastWasWhitespace == false {
+	if h.lastWasWhitespace == false {
 		h.tokenBuffer.WriteRune(' ')
 		h.textBuffer.WriteRune(' ')
-		h.sbLastWasWhitespace = true
+		h.lastWasWhitespace = true
 	}
 }
 
@@ -439,7 +434,7 @@ func (ta *tagActionAnchor) Start(h *contentHandler) bool {
 		h.addWhitespaceIfNecessary()
 		h.tokenBuffer.WriteString(anchorTextStart)
 		h.tokenBuffer.WriteRune(' ')
-		h.sbLastWasWhitespace = true
+		h.lastWasWhitespace = true
 	}
 
 	return false
@@ -453,7 +448,7 @@ func (*tagActionAnchor) End(h *contentHandler) bool {
 			h.addWhitespaceIfNecessary()
 			h.tokenBuffer.WriteString(anchorTextEnd)
 			h.tokenBuffer.WriteRune(' ')
-			h.sbLastWasWhitespace = true
+			h.lastWasWhitespace = true
 		}
 	}
 
