@@ -72,6 +72,9 @@ type contentHandler struct {
 	// TODO: LinkedList<Integer> fontSizeStack = new LinkedList<Integer>();
 
 	atomStack *atomStack
+
+	inLinkedDataJSON bool
+	linkedDataJSON   []string
 }
 
 func newContentHandler() *contentHandler {
@@ -86,32 +89,25 @@ func newContentHandler() *contentHandler {
 		labelStack: NewLabelStack(),
 
 		atomStack: newAtomStack(),
+
+		linkedDataJSON: make([]string, 0),
 	}
 }
 
-func (h *contentHandler) StartElement(z *html.Tokenizer) {
-	tn, _ := z.TagName()
-	a := atom.Lookup(tn)
+func (h *contentHandler) StartElement(tok *html.Token) {
+	h.atomStack.Push(tok.DataAtom)
 
-	h.atomStack.Push(a)
-
-	ta, ok := tagActionMap[a]
+	ta, ok := tagActionMap[tok.DataAtom]
 	if ok {
 		switch ta.(type) {
 		case *tagActionTime:
-			for {
-				key, val, _ := z.TagAttr()
-				if key == nil {
-					break
-				} else {
-					keyS := string(key)
-					if keyS == "datetime" {
-						t, err := time.Parse(time.RFC3339, string(val))
-						if err == nil {
-							h.time = t
-						}
-						break
+			for _, attr := range tok.Attr {
+				if attr.Key == "datetime" {
+					t, err := time.Parse(time.RFC3339, attr.Val)
+					if err == nil {
+						h.time = t
 					}
+					break
 				}
 			}
 		}
@@ -125,20 +121,17 @@ func (h *contentHandler) StartElement(z *html.Tokenizer) {
 		h.flush = true
 	}
 
-	h.lastStartTag = a.String()
+	h.lastStartTag = tok.Data
 
 }
 
-func (h *contentHandler) EndElement(z *html.Tokenizer) {
-	tn, _ := z.TagName()
-	a := atom.Lookup(tn)
-
+func (h *contentHandler) EndElement(tok *html.Token) {
 	pa := h.atomStack.Pop()
-	if pa != a {
+	if pa != tok.DataAtom {
 		return // malformed HTML, missing closing tag
 	}
 
-	ta, ok := tagActionMap[a]
+	ta, ok := tagActionMap[tok.DataAtom]
 	if ok {
 		h.flush = ta.End(h) || h.flush
 	} else {
@@ -153,7 +146,7 @@ func (h *contentHandler) EndElement(z *html.Tokenizer) {
 		h.FlushBlock()
 	}
 
-	h.lastEndTag = a.String()
+	h.lastEndTag = tok.Data
 
 	h.labelStack.Pop()
 }
@@ -185,7 +178,7 @@ func (sr *spaceRemover) getSpaceRemovalFunc() func(rune) rune {
 	}
 }
 
-func (h *contentHandler) TextToken(z *html.Tokenizer) {
+func (h *contentHandler) TextToken(tok *html.Token) {
 	h.textElementIndex++
 
 	if h.flush {
@@ -197,13 +190,12 @@ func (h *contentHandler) TextToken(z *html.Tokenizer) {
 		return
 	}
 
-	t := string(z.Text())
-	if len(t) == 0 {
+	if len(tok.Data) == 0 {
 		return
 	}
 
 	sr := &spaceRemover{}
-	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), t))
+	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), tok.Data))
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
 			if h.lastWasWhitespace == false {

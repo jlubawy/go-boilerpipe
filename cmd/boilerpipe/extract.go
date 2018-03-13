@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"time"
 
 	"github.com/jlubawy/go-boilerpipe"
 	"github.com/jlubawy/go-boilerpipe/normurl"
@@ -118,10 +119,11 @@ func extract(r io.Reader, u *normurl.URL) {
 	}
 	boilerpipe.ArticlePipline.Process(doc)
 
+	jsonDoc := NewJSONDocument(doc)
 	if FlagPrettyPrint {
-		b, err = json.MarshalIndent(doc, "", "  ")
+		b, err = json.MarshalIndent(jsonDoc, "", "  ")
 	} else {
-		b, err = json.Marshal(doc)
+		b, err = json.Marshal(jsonDoc)
 	}
 	if err != nil {
 		fatalf("Error encoding JSON: %v\n", err)
@@ -140,4 +142,20 @@ If no argument is provided the document is read from stdin, else the argument is
 parsed first as a URL and then a filename.
 `)
 	os.Exit(1)
+}
+
+type jsonDocument struct {
+	Title   string    `json:"title"`
+	Author  string    `json:"author"`
+	Date    time.Time `json:"date"`
+	Content string    `json:"content"`
+}
+
+func NewJSONDocument(doc *boilerpipe.Document) *jsonDocument {
+	return &jsonDocument{
+		Title:   doc.Title,
+		Author:  doc.Author,
+		Date:    doc.Date,
+		Content: doc.Content(),
+	}
 }
