@@ -27,7 +27,7 @@ func (pipeline *Pipeline) Process(doc *Document) (hasChanged bool) {
 	return
 }
 
-var ArticlePipline = &Pipeline{
+var ArticlePipeline = &Pipeline{
 	PipelineName: "Article",
 	Filters: []Filter{
 		TerminatingBlocks(),

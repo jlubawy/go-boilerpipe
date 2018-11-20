@@ -42,7 +42,7 @@ func ExampleParseDocument() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		ArticlePipline.Process(doc)
+		ArticlePipeline.Process(doc)
 
 		// Log the document's title
 		fmt.Println(doc.Title)

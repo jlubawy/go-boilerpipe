@@ -117,7 +117,7 @@ func extract(r io.Reader, u *normurl.URL) {
 	if err != nil {
 		fatalf("Error creating new document: %v\n", err)
 	}
-	boilerpipe.ArticlePipline.Process(doc)
+	boilerpipe.ArticlePipeline.Process(doc)
 
 	jsonDoc := NewJSONDocument(doc)
 	if FlagPrettyPrint {
