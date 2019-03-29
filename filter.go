@@ -69,7 +69,7 @@ func (terminatingBlocks) Process(doc *Document) bool {
 
 		numWords := tb.NumWords
 
-		if numWords < 50 {
+		if numWords < 15 {
 			text := strings.TrimSpace(tb.Text)
 
 			if len(text) >= 8 {

@@ -2,6 +2,7 @@ package boilerpipe
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -195,7 +196,11 @@ func (h *contentHandler) TextToken(tok *html.Token) {
 	}
 
 	sr := &spaceRemover{}
+
 	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), tok.Data))
+	if ch == "国内新闻" {
+		fmt.Println(789)
+	}
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
 			if h.lastWasWhitespace == false {
@@ -233,13 +238,22 @@ func (h *contentHandler) TextToken(tok *html.Token) {
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
 
-var reMultiSpace = regexp.MustCompile(`[\s]+`)
+var PAT_WORD_BOUNDARY = regexp.MustCompile("[\\p{L}\\d_]+")
+var PAT_NOT_WORD_BOUNDARY = regexp.MustCompile("[\u2063]*([\\\"'\\.,\\!\\@\\-\\:\\;\\$\\?\\(\\)/])[\u2063]*");
+var MYREG = regexp.MustCompile("[ \u2063]+")
+var MYREG2 = regexp.MustCompile("[ ]+")
 
-func tokenize(b *bytes.Buffer) []string {
-	return reMultiSpace.Split(strings.TrimSpace(b.String()), -1)
+func tokenize(b *bytes.Buffer) []string{
+	text := b.String()
+	text = PAT_WORD_BOUNDARY.ReplaceAllStringFunc(strings.TrimSpace(text), func(s string) string {
+		return "\u2063" + s + "\u2063"
+	})
+	text = PAT_NOT_WORD_BOUNDARY.ReplaceAllString(text, "$1")
+	text = MYREG.ReplaceAllString(text, " ")
+	return MYREG2.Split(strings.TrimSpace(text), -1)
 }
 
-var reValidWordCharacter = regexp.MustCompile(`[\w]`)
+var reValidWordCharacter = regexp.MustCompile(`[\p{L}\p{Nd}\p{Nl}\p{No}]`)
 
 func isWord(tok string) bool {
 	return reValidWordCharacter.MatchString(tok)
@@ -284,6 +298,12 @@ func (h *contentHandler) FlushBlock() {
 	currentLineLength := -1 // don't count the first space
 
 	for _, tok := range tokens {
+		if strings.Contains(tok, "国内新闻"){
+			fmt.Println(456)
+		}
+		if tok == "共绘美美与共的人类文明画卷"{
+			fmt.Println(123)
+		}
 		if tok == anchorTextStart {
 			h.inAnchorText = true
 		} else if tok == anchorTextEnd {
@@ -297,7 +317,8 @@ func (h *contentHandler) FlushBlock() {
 				numLinkedWords++
 			}
 
-			tokLength := len(tok)
+			//tokLength := len(tok)
+			tokLength := len([]rune(tok))
 			currentLineLength += tokLength + 1
 
 			if currentLineLength > maxLineLength {
