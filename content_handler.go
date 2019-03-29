@@ -2,7 +2,6 @@ package boilerpipe
 
 import (
 	"bytes"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -198,9 +197,6 @@ func (h *contentHandler) TextToken(tok *html.Token) {
 	sr := &spaceRemover{}
 
 	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), tok.Data))
-	if ch == "国内新闻" {
-		fmt.Println(789)
-	}
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
 			if h.lastWasWhitespace == false {
@@ -298,12 +294,6 @@ func (h *contentHandler) FlushBlock() {
 	currentLineLength := -1 // don't count the first space
 
 	for _, tok := range tokens {
-		if strings.Contains(tok, "国内新闻"){
-			fmt.Println(456)
-		}
-		if tok == "共绘美美与共的人类文明画卷"{
-			fmt.Println(123)
-		}
 		if tok == anchorTextStart {
 			h.inAnchorText = true
 		} else if tok == anchorTextEnd {
@@ -316,8 +306,7 @@ func (h *contentHandler) FlushBlock() {
 			if h.inAnchorText {
 				numLinkedWords++
 			}
-
-			//tokLength := len(tok)
+			
 			tokLength := len([]rune(tok))
 			currentLineLength += tokLength + 1
 
