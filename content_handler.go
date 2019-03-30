@@ -234,6 +234,7 @@ func (h *contentHandler) TextToken(tok *html.Token) {
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
 
+// according to boilerpipe-1.2.1-sources.jar UnicodeTokenizer class tokenize static method
 var PAT_WORD_BOUNDARY = regexp.MustCompile("[\\p{L}\\d_]+")
 var PAT_NOT_WORD_BOUNDARY = regexp.MustCompile("[\u2063]*([\\\"'\\.,\\!\\@\\-\\:\\;\\$\\?\\(\\)/])[\u2063]*");
 var MYREG = regexp.MustCompile("[ \u2063]+")
@@ -250,6 +251,7 @@ func tokenize(b *bytes.Buffer) []string{
 }
 
 var reValidWordCharacter = regexp.MustCompile(`[\p{L}\p{Nd}\p{Nl}\p{No}]`)
+// end according
 
 func isWord(tok string) bool {
 	return reValidWordCharacter.MatchString(tok)

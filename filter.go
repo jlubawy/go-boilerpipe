@@ -69,7 +69,7 @@ func (terminatingBlocks) Process(doc *Document) bool {
 
 		numWords := tb.NumWords
 
-		if numWords < 15 {
+		if numWords < 15 {  // according to boilerpipe-1.2.1-sources.jar TerminatingBlocksFinder class
 			text := strings.TrimSpace(tb.Text)
 
 			if len(text) >= 8 {

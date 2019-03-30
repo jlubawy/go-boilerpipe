@@ -1,5 +1,6 @@
 package boilerpipe
 
+// check if the tag is self-closing tag
 func CheckIsTolerateTag(lookup string) bool {
 	switch lookup {
 	case

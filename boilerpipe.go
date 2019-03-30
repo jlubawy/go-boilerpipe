@@ -113,6 +113,8 @@ func parse(r io.Reader, fn func(tok *html.Token, h *contentHandler)) (h *content
 		tt := z.Next()
 		tok := z.Token()
 
+		// if the token is start tag, but belongs to self-closing tag list, then the token is malformat tag,
+		// should be skip
 		if tt == html.StartTagToken {
 			if CheckIsTolerateTag(tok.Data) {
 				continue
