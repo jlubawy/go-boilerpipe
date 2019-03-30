@@ -704,7 +704,7 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 	hasChanged = classify(prevBlock, currentBlock, nextBlock) || hasChanged
 
 	if nextBlock != textBlockEmptyStart {
-		for i := 3; i < len(doc.TextBlocks); i++ {
+		for i := 2; i < len(doc.TextBlocks); i++ {
 			prevBlock = currentBlock
 			currentBlock = nextBlock
 			nextBlock = doc.TextBlocks[i]
