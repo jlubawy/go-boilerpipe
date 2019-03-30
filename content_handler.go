@@ -306,7 +306,7 @@ func (h *contentHandler) FlushBlock() {
 			if h.inAnchorText {
 				numLinkedWords++
 			}
-			
+
 			tokLength := len([]rune(tok))
 			currentLineLength += tokLength + 1
 

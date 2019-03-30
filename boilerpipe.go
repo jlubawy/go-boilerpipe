@@ -112,9 +112,13 @@ func parse(r io.Reader, fn func(tok *html.Token, h *contentHandler)) (h *content
 	for {
 		tt := z.Next()
 		tok := z.Token()
-		if tok.Data == "img"{
-			continue
+
+		if tt == html.StartTagToken {
+			if CheckIsTolerateTag(tok.Data) {
+				continue
+			}
 		}
+
 		switch tt {
 		case html.ErrorToken:
 			if z.Err() != io.EOF {
