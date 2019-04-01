@@ -127,6 +127,12 @@ func parse(r io.Reader, fn func(tok *html.Token, h *contentHandler)) (h *content
 			fn(&tok, h)
 
 		case html.StartTagToken:
+			// If the token is start tag, but should be a self-closing tag,
+			// then the token is malformed and should be skipped.
+			if shouldBeSelfClosingTag(tok.DataAtom) {
+				continue
+			}
+
 			if tok.DataAtom == atom.Script {
 				for _, attr := range tok.Attr {
 					if attr.Key == "type" && attr.Val == "application/ld+json" {

@@ -69,7 +69,8 @@ func (terminatingBlocks) Process(doc *Document) bool {
 
 		numWords := tb.NumWords
 
-		if numWords < 50 {
+		// According to boilerpipe-1.2.1-sources.jar TerminatingBlocksFinder class.
+		if numWords < 15 {
 			text := strings.TrimSpace(tb.Text)
 
 			if len(text) >= 8 {
@@ -704,7 +705,7 @@ func (filter numWordsRulesClassifier) Process(doc *Document) bool {
 	hasChanged = classify(prevBlock, currentBlock, nextBlock) || hasChanged
 
 	if nextBlock != textBlockEmptyStart {
-		for i := 3; i < len(doc.TextBlocks); i++ {
+		for i := 2; i < len(doc.TextBlocks); i++ {
 			prevBlock = currentBlock
 			currentBlock = nextBlock
 			nextBlock = doc.TextBlocks[i]

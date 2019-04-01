@@ -195,6 +195,7 @@ func (h *contentHandler) TextToken(tok *html.Token) {
 	}
 
 	sr := &spaceRemover{}
+
 	ch := strings.TrimSpace(strings.Map(sr.getSpaceRemovalFunc(), tok.Data))
 	if len(ch) == 0 {
 		if sr.wasFirstWhitespace || sr.wasLastWhitespace {
@@ -233,13 +234,27 @@ func (h *contentHandler) TextToken(tok *html.Token) {
 	// TODO: currentContainedTextElements.set(h.textElementIndex);
 }
 
-var reMultiSpace = regexp.MustCompile(`[\s]+`)
+// According to boilerpipe-1.2.1-sources.jar UnicodeTokenizer class tokenize static method.
+var reWordBoundary = regexp.MustCompile("[\\p{L}\\d_]+")
+var reNotWordBoundary = regexp.MustCompile("[\u2063]*([\\\"'\\.,\\!\\@\\-\\:\\;\\$\\?\\(\\)/])[\u2063]*")
+var reInvisibleSeparator = regexp.MustCompile("[\u2063]+")
+var reSpace = regexp.MustCompile("[ ]+")
 
 func tokenize(b *bytes.Buffer) []string {
-	return reMultiSpace.Split(strings.TrimSpace(b.String()), -1)
+	text := b.String()
+	text = reWordBoundary.ReplaceAllStringFunc(strings.TrimSpace(text), func(s string) string {
+		return "\u2063" + s + "\u2063"
+	})
+	text = reNotWordBoundary.ReplaceAllString(text, "$1")
+
+	// Replace all invisible separators with a space.
+	text = reInvisibleSeparator.ReplaceAllString(text, " ")
+
+	// Split words on spaces, and trim leading/trailing spaces.
+	return reSpace.Split(strings.TrimSpace(text), -1)
 }
 
-var reValidWordCharacter = regexp.MustCompile(`[\w]`)
+var reValidWordCharacter = regexp.MustCompile(`[\p{L}\p{Nd}\p{Nl}\p{No}]`)
 
 func isWord(tok string) bool {
 	return reValidWordCharacter.MatchString(tok)
@@ -297,7 +312,7 @@ func (h *contentHandler) FlushBlock() {
 				numLinkedWords++
 			}
 
-			tokLength := len(tok)
+			tokLength := len([]rune(tok))
 			currentLineLength += tokLength + 1
 
 			if currentLineLength > maxLineLength {
@@ -535,4 +550,25 @@ var tagActionMap = map[atom.Atom]tagAction{
 	atom.Wbr:      &tagActionIgnoreableVoid{},
 
 	atom.Time: &tagActionTime{},
+}
+
+// Checks if the tag should be self-closing.
+func shouldBeSelfClosingTag(tag atom.Atom) bool {
+	switch tag {
+	case atom.Area,
+		atom.Base,
+		atom.Br,
+		atom.Embed,
+		atom.Hr,
+		atom.Iframe,
+		atom.Img,
+		atom.Input,
+		atom.Link,
+		atom.Meta,
+		atom.Param,
+		atom.Source,
+		atom.Track:
+		return true
+	}
+	return false
 }
