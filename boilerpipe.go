@@ -13,7 +13,7 @@ import (
 )
 
 // Version is the version of the boilerpipe package.
-const Version = "0.4.0"
+const Version = "0.5.0"
 
 type Document struct {
 	// Title is the title of the document.

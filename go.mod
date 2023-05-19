@@ -1,3 +1,5 @@
 module github.com/jlubawy/go-boilerpipe
 
-require golang.org/x/net v0.0.0-20190328230028-74de082e2cca
+go 1.20
+
+require golang.org/x/net v0.10.0
