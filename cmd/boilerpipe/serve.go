@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	htemp "html/template"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,12 +33,9 @@ func serveFunc(args []string) {
 		fatalf("usage: boilerpipe serve command\n\nToo many arguments given.\n")
 	}
 
-	if err := ParseTemplates(); err != nil {
-		fatalf("Error parsing templates: %v\n", err)
-	}
-
 	http.HandleFunc("/", runHandler(indexHandler))
 	http.HandleFunc("/extract", runHandler(extractHandler))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./build"))))
 
 	fmt.Fprintf(os.Stderr, "Listening on port %d\n", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
@@ -63,7 +59,7 @@ func runHandler(handler func(w http.ResponseWriter, req *http.Request) (int, err
 				"Status": http.StatusText(code),
 				"Error":  err,
 			}
-			if err := Execute("error", w, data); err != nil {
+			if err := templError.Execute(w, data); err != nil {
 				panic(err)
 			}
 		}
@@ -93,7 +89,7 @@ func indexHandler(w http.ResponseWriter, req *http.Request) (int, error) {
 		return http.StatusMethodNotAllowed, ErrMethodNotSupported
 	}
 
-	if err := Execute("index", w, nil); err != nil {
+	if err := templIndex.Execute(w, nil); err != nil {
 		return http.StatusInternalServerError, err
 	}
 
@@ -140,7 +136,7 @@ func extractHandler(w http.ResponseWriter, req *http.Request) (int, error) {
 		"RawURL":         rawurl,
 		"url":            u.String(),
 	}
-	if err := Execute("extract", w, data); err != nil {
+	if err := templExtract.Execute(w, data); err != nil {
 		panic(err)
 	}
 
@@ -203,48 +199,7 @@ func (pipeline *LoggingPipeline) Process(doc *boilerpipe.Document) (hasChanged b
 	return
 }
 
-var templateMap = make(map[string]*htemp.Template)
-
-func ParseTemplates() error {
-	for name, s := range templStrs {
-		rootTempl, err := htemp.New("").Parse(templRootStr)
-		if err != nil {
-			return err
-		}
-
-		t, err := rootTempl.Parse(s)
-		if err != nil {
-			return fmt.Errorf("template '%s': %v\n", name, err)
-		}
-		templateMap[name] = t
-	}
-
-	return nil
-}
-
-func Execute(name string, w io.Writer, data map[string]interface{}) error {
-	if data == nil {
-		data = make(map[string]interface{})
-	}
-
-	{
-		data["version"] = boilerpipe.Version
-	}
-
-	t, exists := templateMap[name]
-	if !exists {
-		return fmt.Errorf("template %s does not exist", name)
-	}
-
-	t = t.Lookup("Root")
-	if t == nil {
-		return fmt.Errorf("Root template not found")
-	}
-
-	return t.Execute(w, data)
-}
-
-var templRootStr = `{{define "Root"}}<!DOCTYPE html>
+var templIndex = htemp.Must(htemp.New("").Parse(`<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -266,33 +221,33 @@ var templRootStr = `{{define "Root"}}<!DOCTYPE html>
       </div><!-- row -->
     </div><!-- container -->
 
-    {{template "Body" $}}
+	<div class="container">
+		<div class="row">
+			<div class="col">
+			<form hx-target="#results" hx-get="/extract" method="GET" action="extract">
+				<div class="form-group">
+				<label for="txtUrl">Article URL</label>
+				<input type="text" id="txtUrl" name="url" class="form-control" placeholder="https://www.example.com/article-url" value="https://google.com" />
+				</div>
+
+				<button type="submit" class="btn btn-success">Extract</button>
+			</form>
+			</div><!-- col -->
+		</div><!-- row -->
+	</div><!-- container -->
+
+	<div id="results"></div>
 
     <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+	<script type="text/javascript" src="static/bundle.js"></script>
   </body>
 </html>
-{{end}}`
+`))
 
-var templStrs = map[string]string{
-	"index": `{{define "Body"}}<div class="container">
-  <div class="row">
-    <div class="col">
-      <form method="GET" action="extract">
-        <div class="form-group">
-          <label for="txtUrl">Article URL</label>
-          <input type="text" id="txtUrl" name="url" class="form-control" placeholder="http://www.example.com/article-url" />
-        </div>
-
-        <button type="submit" class="btn btn-success">Extract</button>
-      </form>
-    </div><!-- col -->
-  </div><!-- row -->
-</div><!-- container -->
-{{end}}`,
-
-	"extract": `{{define "Body"}}<div class="container">
+var templExtract = htemp.Must(htemp.New("").Parse(`
+<div class="container">
   <div class="row">
     <div class="col">
       <dl class="row">
@@ -341,16 +296,13 @@ var templStrs = map[string]string{
       </div><!-- #accordion -->
     </div><!-- col -->
   </div><!-- row -->
-</div><!-- container -->
-{{end}}`,
+</div><!-- container -->`))
 
-	"error": `{{define "Body"}}<div class="container">
-  <div class="row">
-    <div class="col">
-      <h1>{{.Status}}</h1>
-      <p>{{.Error}}</p>
-    </div><!-- col -->
-  </div><!-- row -->
-</div><!-- container -->
-{{end}}`,
-}
+var templError = htemp.Must(htemp.New("").Parse(`<div class="container">
+<div class="row">
+  <div class="col">
+	<h1>{{.Status}}</h1>
+	<p>{{.Error}}</p>
+  </div><!-- col -->
+</div><!-- row -->
+</div><!-- container -->`))
