@@ -1,5 +1,7 @@
 # go-boilerpipe
 
+**Use https://github.com/adbar/trafilatura**
+
 _Golang port of the [boilerpipe](https://github.com/kohlschutter/boilerpipe)
 Java library written by Christian Kohlschütter_
 
